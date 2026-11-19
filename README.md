@@ -319,18 +319,18 @@ Temple's runtime and compiler pipeline are heavily optimized for zero-allocation
 <!-- BEGIN_BENCHMARK_TABLE -->
 | Benchmark (`-o:speed`) | Median | P95 | Throughput | Ops/s | Allocs/op |
 | :--- | ---: | ---: | ---: | ---: | ---: |
-| `html_escape (clean 64KB doc)` | **26.66 µs** | 26.96 µs | 2,344.2 MB/s | 37,508 | 0 |
-| `html_escape (mixed XSS 64KB doc)` | **115.29 µs** | 134.97 µs | 542.1 MB/s | 8,673 | 0 |
-| `safe_url (valid https URL)` | **62.53 ns** | 68.35 ns | 625.3 MB/s | 15,991,723 | 0 |
-| `write_int + write_f64_prec (direct fast writers)` | **61.38 ns** | 63.27 ns | 388.5 MB/s | 16,293,036 | 0 |
-| `fmt("%s" / "%i") (compile-time strength reduced)` | **55.72 ns** | 56.01 ns | 1,044.1 MB/s | 17,948,117 | 0 |
-| `compiled_inline (card, reused buf)` | **74.54 ns** | 76.63 ns | 1,125.9 MB/s | 13,416,297 | 0 |
-| `compiled (50-row dashboard, 15.3 KB HTML, reused buf)` | **16.21 µs** | 16.50 µs | 898.8 MB/s | 61,697 | 0 |
-| `cli: lexer tokenize (dashboard.temple.html)` | **3.83 µs** | 3.87 µs | 301.9 MB/s | 260,966 | 0 |
-| `cli: pure transpile codegen (5.5 KB Odin code)` | **6.05 µs** | 6.06 µs | 865.7 MB/s | 165,325 | 0 |
-| `cli: full parse + inheritance + transpile` | **21.18 µs** | 21.27 µs | 84.4 MB/s | 47,209 | 32 (11.2 KB) |
+| `html_escape (clean 64KB doc)` | **29.90 µs** | 30.44 µs | 2,090.2 MB/s | 33,443 | 0 |
+| `html_escape (mixed XSS 64KB doc)` | **71.57 µs** | 82.12 µs | 873.2 MB/s | 13,971 | 0 |
+| `safe_url (valid https URL)` | **40.32 ns** | 42.34 ns | 969.8 MB/s | 24,801,887 | 0 |
+| `write_int + write_f64_prec (direct fast writers)` | **37.51 ns** | 40.99 ns | 635.7 MB/s | 26,661,122 | 0 |
+| `fmt("%s" / "%i") (compile-time strength reduced)` | **36.03 ns** | 41.51 ns | 1,614.8 MB/s | 27,757,343 | 0 |
+| `compiled_inline (card, reused buf)` | **50.86 ns** | 51.51 ns | 1,650.2 MB/s | 19,663,114 | 0 |
+| `compiled (50-row dashboard, 15.3 KB HTML, reused buf)` | **10.23 µs** | 10.38 µs | 1,423.9 MB/s | 97,742 | 0 |
+| `cli: lexer tokenize (dashboard.temple.html)` | **2.34 µs** | 2.38 µs | 493.6 MB/s | 426,731 | 0 |
+| `cli: pure transpile codegen (5.5 KB Odin code)` | **3.72 µs** | 3.75 µs | 1,406.9 MB/s | 268,663 | 0 |
+| `cli: full parse + inheritance + transpile` | **12.46 µs** | 12.54 µs | 143.4 MB/s | 80,249 | 32 (11.2 KB) |
 
-> Recorded via [`hugi`](benchmarks/README.md) at commit `7d07647be48c` (50 samples/benchmark, `-o:speed`).
+> Recorded via [`hugi`](benchmarks/README.md) at commit `b9417f73ddab` (50 samples/benchmark, `-o:speed`).
 <!-- END_BENCHMARK_TABLE -->
 
 ```sh

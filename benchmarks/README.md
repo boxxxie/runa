@@ -41,79 +41,79 @@ odin run tools/bench_report
 ## Benchmark Results (`-o:speed`)
 
 <!-- BEGIN_BENCHMARK_TABLE -->
-> **Suite:** `temple` · **Commit:** `7d07647be48c` · **Benchmarks:** 42 (26 zero-alloc) · **Samples/bench:** 50 (1 run)
+> **Suite:** `temple` · **Commit:** `b9417f73ddab` · **Benchmarks:** 42 (26 zero-alloc) · **Samples/bench:** 50 (1 run)
 
 ### `html_escape` — HTML Escaping
 
 | Benchmark | Samples | Median | P95 | ±CI95 | Ops/s | Throughput | CV% | Allocs/op |
 | :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| `clean_ascii_70b` | 50 | **43.32 ns** | 46.43 ns | ±0.68 ns | 23,083,628 | 1,541.0 MB/s | 5.4% | 0 |
-| `dense_xss_88b` | 50 | **242.28 ns** | 243.82 ns | ±0.27 ns | 4,127,448 | 346.4 MB/s | 0.4% | 0 |
-| `clean_64kb` | 50 | **26.66 µs** | 26.96 µs | ±100.15 ns | 37,508 | 2,344.2 MB/s | 1.3% | 0 |
-| `mixed_xss_64kb` | 50 | **115.29 µs** | 134.97 µs | ±2.50 µs | 8,673 | 542.1 MB/s | 7.5% | 0 |
+| `clean_ascii_70b` | 50 | **40.33 ns** | 41.10 ns | ±0.58 ns | 24,793,861 | 1,655.2 MB/s | 5.0% | 0 |
+| `dense_xss_88b` | 50 | **145.24 ns** | 149.50 ns | ±0.70 ns | 6,885,247 | 577.8 MB/s | 1.7% | 0 |
+| `clean_64kb` | 50 | **29.90 µs** | 30.44 µs | ±108.04 ns | 33,443 | 2,090.2 MB/s | 1.3% | 0 |
+| `mixed_xss_64kb` | 50 | **71.57 µs** | 82.12 µs | ±1.30 µs | 13,971 | 873.2 MB/s | 6.4% | 0 |
 
 ### `url_and_js` — URL Sanitization & JS / Magic Escaping
 
 | Benchmark | Samples | Median | P95 | ±CI95 | Ops/s | Throughput | CV% | Allocs/op |
 | :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| `safe_url_relative` | 50 | **48.55 ns** | 71.62 ns | ±2.44 ns | 20,599,339 | 589.4 MB/s | 16.5% | 0 |
-| `safe_url_https` | 50 | **62.53 ns** | 68.35 ns | ±1.00 ns | 15,991,723 | 625.3 MB/s | 5.6% | 0 |
-| `safe_url_data_png` | 50 | **49.72 ns** | 51.40 ns | ±0.30 ns | 20,111,547 | 959.0 MB/s | 2.1% | 0 |
-| `safe_url_blocked_js` | 50 | **24.44 ns** | 24.51 ns | ±0.01 ns | 40,909,605 | 1,014.4 MB/s | 0.1% | 0 |
-| `url_param_fast_path` | 50 | **26.12 ns** | 27.49 ns | ±0.43 ns | 38,284,287 | 1,095.3 MB/s | 5.7% | 0 |
-| `url_param_encoded_query` | 50 | **59.16 ns** | 72.82 ns | ±1.26 ns | 16,903,494 | 451.4 MB/s | 7.3% | 0 |
-| `js_string_escape` | 50 | **139.64 ns** | 141.37 ns | ±0.18 ns | 7,161,179 | 327.8 MB/s | 0.4% | 0 |
-| `magic_string_8word` | 50 | **173.08 ns** | 179.50 ns | ±1.00 ns | 5,777,838 | 275.5 MB/s | 2.0% | 0 |
+| `safe_url_relative` | 50 | **33.84 ns** | 34.80 ns | ±0.49 ns | 29,547,822 | 845.4 MB/s | 5.0% | 0 |
+| `safe_url_https` | 50 | **40.32 ns** | 42.34 ns | ±0.79 ns | 24,801,887 | 969.8 MB/s | 6.8% | 0 |
+| `safe_url_data_png` | 50 | **38.85 ns** | 40.94 ns | ±1.29 ns | 25,741,998 | 1,227.5 MB/s | 11.5% | 0 |
+| `safe_url_blocked_js` | 50 | **15.04 ns** | 16.78 ns | ±0.51 ns | 66,503,441 | 1,649.0 MB/s | 11.5% | 0 |
+| `url_param_fast_path` | 50 | **15.86 ns** | 23.71 ns | ±0.81 ns | 63,064,474 | 1,804.3 MB/s | 17.0% | 0 |
+| `url_param_encoded_query` | 50 | **35.93 ns** | 41.95 ns | ±0.90 ns | 27,834,770 | 743.3 MB/s | 8.6% | 0 |
+| `js_string_escape` | 50 | **81.93 ns** | 98.43 ns | ±1.91 ns | 12,205,615 | 558.7 MB/s | 8.1% | 0 |
+| `magic_string_8word` | 50 | **107.93 ns** | 119.44 ns | ±2.99 ns | 9,265,376 | 441.8 MB/s | 9.5% | 0 |
 
 ### `formatting` — Numeric Writers, Formatters & Pipes
 
 | Benchmark | Samples | Median | P95 | ±CI95 | Ops/s | Throughput | CV% | Allocs/op |
 | :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| `write_int_and_f64` | 50 | **61.38 ns** | 63.27 ns | ±0.29 ns | 16,293,036 | 388.5 MB/s | 1.7% | 0 |
-| `write_large_numbers` | 50 | **67.17 ns** | 70.62 ns | ±0.44 ns | 14,888,452 | 440.2 MB/s | 2.3% | 0 |
-| `fmt_strength_reduced` | 50 | **55.72 ns** | 56.01 ns | ±0.03 ns | 17,948,117 | 1,044.1 MB/s | 0.2% | 0 |
-| `default_chained_pipe` | 50 | **99.73 ns** | 99.86 ns | ±0.11 ns | 10,027,548 | 353.8 MB/s | 0.4% | 0 |
-| `fmt_escaped_streaming` | 50 | **465.20 ns** | 478.48 ns | ±1.86 ns | 2,149,597 | 84.1 MB/s | 1.4% | 0 |
-| `fmt_raw` | 50 | **394.70 ns** | 399.37 ns | ±0.72 ns | 2,533,571 | 74.9 MB/s | 0.6% | 0 |
-| `fmt_tprintf_escaped` | 50 | **561.39 ns** | 568.15 ns | ±1.38 ns | 1,781,284 | 69.6 MB/s | 0.9% | 3 (68 B) |
+| `write_int_and_f64` | 50 | **37.51 ns** | 40.99 ns | ±0.90 ns | 26,661,122 | 635.7 MB/s | 8.3% | 0 |
+| `write_large_numbers` | 50 | **41.33 ns** | 53.48 ns | ±1.64 ns | 24,193,914 | 715.3 MB/s | 13.4% | 0 |
+| `fmt_strength_reduced` | 50 | **36.03 ns** | 41.51 ns | ±0.97 ns | 27,757,343 | 1,614.8 MB/s | 9.2% | 0 |
+| `default_chained_pipe` | 50 | **63.21 ns** | 93.74 ns | ±3.46 ns | 15,819,679 | 558.2 MB/s | 18.3% | 0 |
+| `fmt_escaped_streaming` | 50 | **273.70 ns** | 278.68 ns | ±0.85 ns | 3,653,632 | 142.9 MB/s | 1.1% | 0 |
+| `fmt_raw` | 50 | **229.68 ns** | 233.38 ns | ±0.60 ns | 4,353,886 | 128.7 MB/s | 0.9% | 0 |
+| `fmt_tprintf_escaped` | 50 | **322.36 ns** | 328.64 ns | ±0.79 ns | 3,102,119 | 121.3 MB/s | 0.9% | 3 (68 B) |
 
 ### `components` — Macros & Embedded Components
 
 | Benchmark | Samples | Median | P95 | ±CI95 | Ops/s | Throughput | CV% | Allocs/op |
 | :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| `macro_badge` | 50 | **71.92 ns** | 72.52 ns | ±0.13 ns | 13,903,663 | 835.4 MB/s | 0.6% | 0 |
-| `embed_badge` | 50 | **71.66 ns** | 73.15 ns | ±1.04 ns | 13,954,422 | 851.7 MB/s | 5.0% | 0 |
+| `macro_badge` | 50 | **51.00 ns** | 61.17 ns | ±1.59 ns | 19,609,010 | 1,178.1 MB/s | 10.8% | 0 |
+| `embed_badge` | 50 | **50.01 ns** | 50.46 ns | ±0.13 ns | 19,997,732 | 1,220.6 MB/s | 0.9% | 0 |
 
 ### `rendering` — End-to-End Template Rendering
 
 | Benchmark | Samples | Median | P95 | ±CI95 | Ops/s | Throughput | CV% | Allocs/op |
 | :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| `card_reused_buf` | 50 | **74.54 ns** | 76.63 ns | ±0.94 ns | 13,416,297 | 1,125.9 MB/s | 4.4% | 0 |
-| `card_approx_bytes` | 50 | **96.56 ns** | 97.33 ns | ±0.26 ns | 10,356,337 | 869.1 MB/s | 0.9% | 1 (109 B) |
-| `card_unbuffered` | 50 | **141.13 ns** | 145.31 ns | ±0.65 ns | 7,085,794 | 594.7 MB/s | 1.6% | 3 (176 B) |
-| `dashboard_50_reused_buf` | 50 | **16.21 µs** | 16.50 µs | ±64.24 ns | 61,697 | 898.8 MB/s | 1.4% | 0 |
-| `dashboard_50_approx_bytes` | 50 | **16.11 µs** | 16.69 µs | ±99.84 ns | 62,072 | 904.3 MB/s | 2.2% | 1 (15.6 KB) |
-| `dashboard_50_sized_16kb` | 50 | **16.05 µs** | 16.55 µs | ±79.74 ns | 62,313 | 907.8 MB/s | 1.7% | 1 (16.0 KB) |
-| `dashboard_50_unbuffered` | 50 | **16.18 µs** | 16.67 µs | ±102.68 ns | 61,794 | 900.2 MB/s | 2.2% | 8 (18.3 KB) |
+| `card_reused_buf` | 50 | **50.86 ns** | 51.51 ns | ±0.15 ns | 19,663,114 | 1,650.2 MB/s | 1.1% | 0 |
+| `card_approx_bytes` | 50 | **64.65 ns** | 66.41 ns | ±0.29 ns | 15,467,614 | 1,298.1 MB/s | 1.6% | 1 (109 B) |
+| `card_unbuffered` | 50 | **88.83 ns** | 90.55 ns | ±0.25 ns | 11,257,808 | 944.8 MB/s | 1.0% | 3 (176 B) |
+| `dashboard_50_reused_buf` | 50 | **10.23 µs** | 10.38 µs | ±23.77 ns | 97,742 | 1,423.9 MB/s | 0.8% | 0 |
+| `dashboard_50_approx_bytes` | 50 | **10.38 µs** | 10.49 µs | ±25.67 ns | 96,359 | 1,403.8 MB/s | 0.9% | 1 (15.6 KB) |
+| `dashboard_50_sized_16kb` | 50 | **10.36 µs** | 10.52 µs | ±28.08 ns | 96,558 | 1,406.7 MB/s | 1.0% | 1 (16.0 KB) |
+| `dashboard_50_unbuffered` | 50 | **10.45 µs** | 10.62 µs | ±27.41 ns | 95,685 | 1,394.0 MB/s | 0.9% | 8 (18.3 KB) |
 
 ### `compiler_cli` — AOT Compiler CLI Pipeline
 
 | Benchmark | Samples | Median | P95 | ±CI95 | Ops/s | Throughput | CV% | Allocs/op |
 | :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| `stage1_ast_collect` | 50 | **991.31 µs** | 1.01 ms | ±3.56 µs | 1,009 | 33.6 MB/s | 1.3% | 7,687 (1.10 MB) |
-| `lexer_tokenize` | 50 | **3.83 µs** | 3.87 µs | ±5.49 ns | 260,966 | 301.9 MB/s | 0.5% | 0 |
-| `parse_expr_check` | 50 | **10.81 µs** | 10.86 µs | ±9.20 ns | 92,481 | 107.0 MB/s | 0.3% | 13 (6.9 KB) |
-| `parse_complex_ast` | 50 | **10.42 µs** | 10.46 µs | ±4.96 ns | 95,948 | 29.3 MB/s | 0.2% | 67 (12.9 KB) |
-| `inheritance_resolve_2level` | 50 | **14.26 µs** | 14.36 µs | ±22.31 ns | 70,139 | 125.4 MB/s | 0.5% | 32 (11.2 KB) |
-| `inheritance_resolve_3level` | 50 | **4.78 µs** | 8.26 µs | ±299.75 ns | 209,024 | 213.7 MB/s | 20.5% | 37 (7.9 KB) |
-| `embed_props_transpile` | 50 | **3.24 µs** | 3.26 µs | ±4.19 ns | 308,679 | 54.2 MB/s | 0.5% | 5 (984 B) |
-| `diagnostic_undefined_macro` | 50 | **1.86 µs** | 1.89 µs | ±3.18 ns | 536,477 | 46.0 MB/s | 0.6% | 7 (1,013 B) |
-| `diagnostic_multiframe_trace` | 50 | **10.99 µs** | 11.03 µs | ±9.29 ns | 90,958 | 88.6 MB/s | 0.3% | 38 (8.3 KB) |
-| `pure_transpile_loc_on` | 50 | **6.05 µs** | 6.06 µs | ±4.36 ns | 165,325 | 865.7 MB/s | 0.3% | 0 |
-| `pure_transpile_loc_off` | 50 | **5.19 µs** | 5.24 µs | ±15.16 ns | 192,538 | 810.1 MB/s | 1.0% | 0 |
-| `full_parse_inherit_transpile` | 50 | **21.18 µs** | 21.27 µs | ±16.55 ns | 47,209 | 84.4 MB/s | 0.3% | 32 (11.2 KB) |
-| `batch_compile_3_warm_cache` | 50 | **33.31 µs** | 33.40 µs | ±10.65 ns | 30,022 | 65.4 MB/s | 0.1% | 89 (21.3 KB) |
-| `watch_snapshot_diff_32` | 50 | **1.65 µs** | 1.65 µs | ±1.22 ns | 605,387 | — | 0.3% | 0 |
+| `stage1_ast_collect` | 50 | **583.07 µs** | 599.73 µs | ±2.23 µs | 1,715 | 57.1 MB/s | 1.3% | 7,687 (1.10 MB) |
+| `lexer_tokenize` | 50 | **2.34 µs** | 2.38 µs | ±5.98 ns | 426,731 | 493.6 MB/s | 0.9% | 0 |
+| `parse_expr_check` | 50 | **6.21 µs** | 6.33 µs | ±19.18 ns | 161,070 | 186.3 MB/s | 1.1% | 13 (6.9 KB) |
+| `parse_complex_ast` | 50 | **6.18 µs** | 6.28 µs | ±15.41 ns | 161,798 | 49.4 MB/s | 0.9% | 67 (12.9 KB) |
+| `inheritance_resolve_2level` | 50 | **8.35 µs** | 8.53 µs | ±25.85 ns | 119,726 | 214.0 MB/s | 1.1% | 32 (11.2 KB) |
+| `inheritance_resolve_3level` | 50 | **2.90 µs** | 2.96 µs | ±7.68 ns | 344,254 | 351.9 MB/s | 0.9% | 37 (7.9 KB) |
+| `embed_props_transpile` | 50 | **1.98 µs** | 2.00 µs | ±6.12 ns | 504,972 | 88.6 MB/s | 1.1% | 5 (984 B) |
+| `diagnostic_undefined_macro` | 50 | **1.04 µs** | 1.06 µs | ±2.61 ns | 961,449 | 82.5 MB/s | 0.9% | 7 (1,013 B) |
+| `diagnostic_multiframe_trace` | 50 | **6.54 µs** | 6.59 µs | ±20.53 ns | 152,978 | 149.0 MB/s | 1.1% | 38 (8.3 KB) |
+| `pure_transpile_loc_on` | 50 | **3.72 µs** | 3.75 µs | ±6.79 ns | 268,663 | 1,406.9 MB/s | 0.6% | 0 |
+| `pure_transpile_loc_off` | 50 | **3.20 µs** | 3.22 µs | ±3.23 ns | 312,551 | 1,315.1 MB/s | 0.4% | 0 |
+| `full_parse_inherit_transpile` | 50 | **12.46 µs** | 12.54 µs | ±14.20 ns | 80,249 | 143.4 MB/s | 0.4% | 32 (11.2 KB) |
+| `batch_compile_3_warm_cache` | 50 | **20.23 µs** | 20.51 µs | ±47.19 ns | 49,430 | 107.7 MB/s | 0.8% | 89 (21.3 KB) |
+| `watch_snapshot_diff_32` | 50 | **933.92 ns** | 938.32 ns | ±1.82 ns | 1,070,753 | — | 0.7% | 0 |
 <!-- END_BENCHMARK_TABLE -->
 
 ---
