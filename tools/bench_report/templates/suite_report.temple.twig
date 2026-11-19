@@ -1,0 +1,11 @@
+> **Suite:** `{{ this.suite_name | raw }}` · **Commit:** `{{ this.commit | raw }}` · **Benchmarks:** {{ int(this.total_benchmarks) }} ({{ int(this.zero_alloc_count) }} zero-alloc) · **Samples/bench:** {{ this.samples_summary | raw }}
+{%- for group in this.groups %}
+
+### `{{ group.name | raw }}` — {{ group.title | raw }}
+
+| Benchmark | Samples | Median | P95 | ±CI95 | Ops/s | Throughput | CV% | Allocs/op |
+| :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+{%- for row in group.rows %}
+| `{{ row.name | raw }}` | {% if row.run_count > 1 %}{{ int(row.samples) }} ({{ int(row.run_count) }} runs){% else %}{{ int(row.samples) }}{% end %} | **{{ row.median | raw }}** | {{ row.p95 | raw }} | {{ row.ci95 | raw }} | {{ row.ops_per_sec | raw }} | {% if row.has_throughput %}{{ row.throughput | raw }}{% else %}—{% end %} | {{ row.cv_pct | raw }} | {{ row.allocs | raw }} |
+{%- end %}
+{%- end %}

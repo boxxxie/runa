@@ -12,7 +12,7 @@ Run and record the benchmark suite via [`hugi`](../../hugi/README.md) (`-o:speed
 # Optional: regenerate benchmarks/templates_gen.odin and verify no unused templates exist
 odin run cli -- --warn-unused benchmarks -out:benchmarks/templates_gen.odin -pkg:benchmarks -temple-import:..
 
-# Verify generated templates are up-to-date (used in CI)
+# Verify generated benchmark templates are up-to-date (used in CI)
 odin run cli -- --check --warn-unused benchmarks -out:benchmarks/templates_gen.odin -pkg:benchmarks -temple-import:..
 
 # Run the benchmark suite and ingest results into benchmarks/history.hugidb
@@ -21,8 +21,12 @@ hugi run benchmarks
 # Compare the latest commit against the previous commit
 hugi compare --last
 
-# Regenerate the benchmark table below from pooled historical runs
-hugi export --db benchmarks/history.hugidb --format md --update-readme benchmarks/README.md
+# Optional: regenerate or verify the AOT report templates in tools/bench_report
+odin run cli -- --warn-unused tools/bench_report -out:tools/bench_report/templates_gen.odin -pkg:bench_report -temple-import:../..
+odin run cli -- --check --warn-unused tools/bench_report -out:tools/bench_report/templates_gen.odin -pkg:bench_report -temple-import:../..
+
+# Regenerate both README.md and benchmarks/README.md tables from benchmarks/history.hugidb
+odin run tools/bench_report
 ```
 
 ### Harness Methodology (`benchmarks/main.odin`)
@@ -30,56 +34,86 @@ hugi export --db benchmarks/history.hugidb --format md --update-readme benchmark
 * **Calibrated Timing & Untimed Allocation Checks (`hugi` / `obench`):** Hot loops execute in calibrated timed batches without allocation-counter overhead (`untimed_alloc_check = true` + vDSO `clock_gettime` on 64-bit Linux), followed by an untimed `Counting_Allocator` pass that enforces `@zero_alloc` invariants and reports exact heap/temp allocations per operation.
 * **Compressed Transactional History (`benchmarks/history.hugidb`):** Runs are serialized as `HPKT` packets and ingested into an `xitdb` transactional history store with Byte-Stream-Split + zlib compression; regressions are checked via Mann-Whitney U and Welch `t`.
 * **Isolated Buffer Modes:** Runtime benchmarks test both a pre-allocated 128 KB `strings.Builder` (measuring pure template execution and verifying `0 allocs/op`) and per-render buffer allocations using `Compiled.approx_bytes` vs unbuffered dynamic growth.
+* **AOT Markdown Report Renderer (`tools/bench_report`):** Exports `benchmarks/history.hugidb` via `hugi export --format json` and renders both the grouped suite tables below and the headline summary in [`../README.md`](../README.md) using AOT-compiled `temple` templates (`suite_report.temple.twig` and `headline_table.temple.twig`).
 
 ---
 
 ## Benchmark Results (`-o:speed`)
 
 <!-- BEGIN_BENCHMARK_TABLE -->
-| Benchmark | Runs | Samples | Median | P95 | Ops/s | CV% | Footprint | Allocs/op |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| `html_escape::clean_ascii_70b` | 1 | 50 | **43.95 ns** | 44.70 ns | 22753737 | 1.0% | - | 0 |
-| `html_escape::dense_xss_88b` | 1 | 50 | **381.86 ns** | 402.78 ns | 2618764 | 21.7% | - | 0 |
-| `html_escape::clean_64kb` | 1 | 50 | **26.74 us** | 27.17 us | 37401 | 0.5% | - | 0 |
-| `html_escape::mixed_xss_64kb` | 1 | 50 | **118.19 us** | 119.60 us | 8461 | 0.4% | - | 0 |
-| `url_and_js::safe_url_relative` | 1 | 50 | **45.51 ns** | 50.39 ns | 21973741 | 3.6% | - | 0 |
-| `url_and_js::safe_url_https` | 1 | 50 | **58.12 ns** | 101.73 ns | 17206075 | 21.5% | - | 0 |
-| `url_and_js::safe_url_data_png` | 1 | 50 | **49.26 ns** | 51.30 ns | 20301887 | 2.8% | - | 0 |
-| `url_and_js::safe_url_blocked_js` | 1 | 50 | **25.58 ns** | 25.87 ns | 39089148 | 0.9% | - | 0 |
-| `url_and_js::url_param_fast_path` | 1 | 50 | **25.68 ns** | 29.79 ns | 38947735 | 7.1% | - | 0 |
-| `url_and_js::url_param_encoded_query` | 1 | 50 | **65.16 ns** | 119.19 ns | 15346161 | 25.4% | - | 0 |
-| `url_and_js::js_string_escape` | 1 | 50 | **142.71 ns** | 172.80 ns | 7007177 | 10.5% | - | 0 |
-| `url_and_js::magic_string_8word` | 1 | 50 | **174.78 ns** | 196.06 ns | 5721552 | 12.7% | - | 0 |
-| `formatting::write_int_and_f64` | 1 | 50 | **60.89 ns** | 65.61 ns | 16422222 | 6.1% | - | 0 |
-| `formatting::write_large_numbers` | 1 | 50 | **67.21 ns** | 73.94 ns | 14879686 | 5.5% | - | 0 |
-| `formatting::fmt_strength_reduced` | 1 | 50 | **57.26 ns** | 74.51 ns | 17463616 | 13.5% | - | 0 |
-| `formatting::default_chained_pipe` | 1 | 50 | **103.27 ns** | 115.36 ns | 9683311 | 6.8% | - | 0 |
-| `formatting::fmt_escaped_streaming` | 1 | 50 | **462.53 ns** | 526.15 ns | 2162040 | 8.1% | - | 0 |
-| `formatting::fmt_raw` | 1 | 50 | **391.75 ns** | 443.98 ns | 2552637 | 9.4% | - | 0 |
-| `formatting::fmt_tprintf_escaped` | 1 | 50 | **548.64 ns** | 691.73 ns | 1822677 | 12.1% | - | 0 |
-| `components::macro_badge` | 1 | 50 | **73.44 ns** | 80.68 ns | 13616090 | 4.6% | - | 0 |
-| `components::embed_badge` | 1 | 50 | **74.16 ns** | 78.94 ns | 13484098 | 6.5% | - | 0 |
-| `rendering::card_reused_buf` | 1 | 50 | **78.37 ns** | 127.58 ns | 12760392 | 18.1% | - | 0 |
-| `rendering::card_approx_bytes` | 1 | 50 | **100.15 ns** | 109.60 ns | 9984733 | 7.3% | - | 0 |
-| `rendering::card_unbuffered` | 1 | 50 | **141.40 ns** | 151.89 ns | 7072240 | 7.2% | - | 0 |
-| `rendering::dashboard_50_reused_buf` | 1 | 50 | **16.17 us** | 17.44 us | 61844 | 12.4% | - | 0 |
-| `rendering::dashboard_50_approx_bytes` | 1 | 50 | **16.71 us** | 20.02 us | 59832 | 7.6% | - | 0 |
-| `rendering::dashboard_50_sized_16kb` | 1 | 50 | **16.82 us** | 19.79 us | 59463 | 7.4% | - | 0 |
-| `rendering::dashboard_50_unbuffered` | 1 | 50 | **16.51 us** | 17.43 us | 60554 | 7.8% | - | 0 |
-| `compiler_cli::stage1_ast_collect` | 1 | 50 | **993.33 us** | 1.05 ms | 1007 | 5.3% | - | 0 |
-| `compiler_cli::lexer_tokenize` | 1 | 50 | **4.05 us** | 4.21 us | 246872 | 1.6% | - | 0 |
-| `compiler_cli::parse_expr_check` | 1 | 50 | **10.86 us** | 10.91 us | 92074 | 0.9% | - | 0 |
-| `compiler_cli::parse_complex_ast` | 1 | 50 | **10.30 us** | 10.34 us | 97079 | 1.5% | - | 0 |
-| `compiler_cli::inheritance_resolve_2level` | 1 | 50 | **14.61 us** | 14.65 us | 68456 | 0.3% | - | 0 |
-| `compiler_cli::inheritance_resolve_3level` | 1 | 50 | **4.80 us** | 4.82 us | 208471 | 0.2% | - | 0 |
-| `compiler_cli::embed_props_transpile` | 1 | 50 | **3.25 us** | 3.39 us | 307799 | 1.7% | - | 0 |
-| `compiler_cli::diagnostic_undefined_macro` | 1 | 50 | **1.77 us** | 1.96 us | 564153 | 3.9% | - | 0 |
-| `compiler_cli::diagnostic_multiframe_trace` | 1 | 50 | **11.39 us** | 18.30 us | 87796 | 19.5% | - | 0 |
-| `compiler_cli::pure_transpile_loc_on` | 1 | 50 | **6.00 us** | 6.18 us | 166641 | 1.4% | - | 0 |
-| `compiler_cli::pure_transpile_loc_off` | 1 | 50 | **5.13 us** | 5.51 us | 194880 | 3.3% | - | 0 |
-| `compiler_cli::full_parse_inherit_transpile` | 1 | 50 | **21.32 us** | 27.45 us | 46909 | 9.0% | - | 0 |
-| `compiler_cli::batch_compile_3_warm_cache` | 1 | 50 | **34.53 us** | 61.01 us | 28961 | 27.6% | - | 0 |
-| `compiler_cli::watch_snapshot_diff_32` | 1 | 50 | **1.68 us** | 2.34 us | 595712 | 14.0% | - | 0 |
+> **Suite:** `temple` · **Commit:** `fdfabeed9db3` · **Benchmarks:** 42 (26 zero-alloc) · **Samples/bench:** 50 (1 run)
+
+### `html_escape` — HTML Escaping
+
+| Benchmark | Samples | Median | P95 | ±CI95 | Ops/s | Throughput | CV% | Allocs/op |
+| :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `clean_ascii_70b` | 50 | **43.95 ns** | 44.70 ns | ±0.12 ns | 22,753,746 | 1,519.0 MB/s | 1.0% | 0 |
+| `dense_xss_88b` | 50 | **381.86 ns** | 402.78 ns | ±20.52 ns | 2,618,765 | 219.8 MB/s | 21.7% | 0 |
+| `clean_64kb` | 50 | **26.74 µs** | 27.17 µs | ±41.11 ns | 37,401 | 2,337.6 MB/s | 0.5% | 0 |
+| `mixed_xss_64kb` | 50 | **118.19 µs** | 119.60 µs | ±144.23 ns | 8,461 | 528.8 MB/s | 0.4% | 0 |
+
+### `url_and_js` — URL Sanitization & JS / Magic Escaping
+
+| Benchmark | Samples | Median | P95 | ±CI95 | Ops/s | Throughput | CV% | Allocs/op |
+| :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `safe_url_relative` | 50 | **45.51 ns** | 50.39 ns | ±0.48 ns | 21,973,751 | 628.7 MB/s | 3.6% | 0 |
+| `safe_url_https` | 50 | **58.12 ns** | 101.73 ns | ±3.82 ns | 17,206,082 | 672.8 MB/s | 21.5% | 0 |
+| `safe_url_data_png` | 50 | **49.26 ns** | 51.30 ns | ±0.39 ns | 20,301,894 | 968.1 MB/s | 2.8% | 0 |
+| `safe_url_blocked_js` | 50 | **25.58 ns** | 25.87 ns | ±0.06 ns | 39,089,163 | 969.2 MB/s | 0.9% | 0 |
+| `url_param_fast_path` | 50 | **25.68 ns** | 29.79 ns | ±0.53 ns | 38,947,752 | 1,114.3 MB/s | 7.1% | 0 |
+| `url_param_encoded_query` | 50 | **65.16 ns** | 119.19 ns | ±5.25 ns | 15,346,167 | 409.8 MB/s | 25.4% | 0 |
+| `js_string_escape` | 50 | **142.71 ns** | 172.80 ns | ±4.40 ns | 7,007,180 | 320.8 MB/s | 10.5% | 0 |
+| `magic_string_8word` | 50 | **174.78 ns** | 196.06 ns | ±6.55 ns | 5,721,555 | 272.8 MB/s | 12.7% | 0 |
+
+### `formatting` — Numeric Writers, Formatters & Pipes
+
+| Benchmark | Samples | Median | P95 | ±CI95 | Ops/s | Throughput | CV% | Allocs/op |
+| :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `write_int_and_f64` | 50 | **60.89 ns** | 65.61 ns | ±1.07 ns | 16,422,229 | 391.5 MB/s | 6.1% | 0 |
+| `write_large_numbers` | 50 | **67.21 ns** | 73.94 ns | ±1.08 ns | 14,879,692 | 439.9 MB/s | 5.5% | 0 |
+| `fmt_strength_reduced` | 50 | **57.26 ns** | 74.51 ns | ±2.33 ns | 17,463,623 | 1,015.9 MB/s | 13.5% | 0 |
+| `default_chained_pipe` | 50 | **103.27 ns** | 115.36 ns | ±2.04 ns | 9,683,315 | 341.7 MB/s | 6.8% | 0 |
+| `fmt_escaped_streaming` | 50 | **462.53 ns** | 526.15 ns | ±10.87 ns | 2,162,041 | 84.5 MB/s | 8.1% | 0 |
+| `fmt_raw` | 50 | **391.75 ns** | 443.98 ns | ±10.74 ns | 2,552,638 | 75.5 MB/s | 9.4% | 0 |
+| `fmt_tprintf_escaped` | 50 | **548.64 ns** | 691.73 ns | ±19.58 ns | 1,822,678 | 71.3 MB/s | 12.1% | 3 (68 B) |
+
+### `components` — Macros & Embedded Components
+
+| Benchmark | Samples | Median | P95 | ±CI95 | Ops/s | Throughput | CV% | Allocs/op |
+| :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `macro_badge` | 50 | **73.44 ns** | 80.68 ns | ±0.97 ns | 13,616,096 | 818.1 MB/s | 4.6% | 0 |
+| `embed_badge` | 50 | **74.16 ns** | 78.94 ns | ±1.39 ns | 13,484,103 | 823.0 MB/s | 6.5% | 0 |
+
+### `rendering` — End-to-End Template Rendering
+
+| Benchmark | Samples | Median | P95 | ±CI95 | Ops/s | Throughput | CV% | Allocs/op |
+| :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `card_reused_buf` | 50 | **78.37 ns** | 127.58 ns | ±4.34 ns | 12,760,397 | 1,070.9 MB/s | 18.1% | 0 |
+| `card_approx_bytes` | 50 | **100.15 ns** | 109.60 ns | ±2.13 ns | 9,984,737 | 838.0 MB/s | 7.3% | 1 (109 B) |
+| `card_unbuffered` | 50 | **141.40 ns** | 151.89 ns | ±2.94 ns | 7,072,243 | 593.5 MB/s | 7.2% | 3 (176 B) |
+| `dashboard_50_reused_buf` | 50 | **16.17 µs** | 17.44 µs | ±586.01 ns | 61,844 | 901.0 MB/s | 12.4% | 0 |
+| `dashboard_50_approx_bytes` | 50 | **16.71 µs** | 20.02 µs | ±370.34 ns | 59,832 | 871.7 MB/s | 7.6% | 1 (15.6 KB) |
+| `dashboard_50_sized_16kb` | 50 | **16.82 µs** | 19.79 µs | ±360.64 ns | 59,463 | 866.3 MB/s | 7.4% | 1 (16.0 KB) |
+| `dashboard_50_unbuffered` | 50 | **16.51 µs** | 17.43 µs | ±371.67 ns | 60,554 | 882.2 MB/s | 7.8% | 8 (18.3 KB) |
+
+### `compiler_cli` — AOT Compiler CLI Pipeline
+
+| Benchmark | Samples | Median | P95 | ±CI95 | Ops/s | Throughput | CV% | Allocs/op |
+| :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `stage1_ast_collect` | 50 | **993.33 µs** | 1.05 ms | ±15.06 µs | 1,007 | 33.5 MB/s | 5.3% | 7,687 (1.10 MB) |
+| `lexer_tokenize` | 50 | **4.05 µs** | 4.21 µs | ±18.04 ns | 246,872 | 285.6 MB/s | 1.6% | 0 |
+| `parse_expr_check` | 50 | **10.86 µs** | 10.91 µs | ±28.42 ns | 92,074 | 106.5 MB/s | 0.9% | 13 (6.9 KB) |
+| `parse_complex_ast` | 50 | **10.30 µs** | 10.34 µs | ±42.99 ns | 97,079 | 29.6 MB/s | 1.5% | 67 (12.9 KB) |
+| `inheritance_resolve_2level` | 50 | **14.61 µs** | 14.65 µs | ±12.69 ns | 68,456 | 122.3 MB/s | 0.3% | 32 (11.2 KB) |
+| `inheritance_resolve_3level` | 50 | **4.80 µs** | 4.82 µs | ±3.29 ns | 208,471 | 213.1 MB/s | 0.2% | 37 (7.9 KB) |
+| `embed_props_transpile` | 50 | **3.25 µs** | 3.39 µs | ±15.76 ns | 307,800 | 54.0 MB/s | 1.7% | 5 (984 B) |
+| `diagnostic_undefined_macro` | 50 | **1.77 µs** | 1.96 µs | ±20.09 ns | 564,153 | 48.4 MB/s | 3.9% | 7 (1,013 B) |
+| `diagnostic_multiframe_trace` | 50 | **11.39 µs** | 18.30 µs | ±707.67 ns | 87,796 | 85.5 MB/s | 19.5% | 38 (8.3 KB) |
+| `pure_transpile_loc_on` | 50 | **6.00 µs** | 6.18 µs | ±23.17 ns | 166,641 | 872.6 MB/s | 1.4% | 0 |
+| `pure_transpile_loc_off` | 50 | **5.13 µs** | 5.51 µs | ±48.62 ns | 194,881 | 820.0 MB/s | 3.3% | 0 |
+| `full_parse_inherit_transpile` | 50 | **21.32 µs** | 27.45 µs | ±567.08 ns | 46,909 | 83.8 MB/s | 9.0% | 32 (11.2 KB) |
+| `batch_compile_3_warm_cache` | 50 | **34.53 µs** | 61.01 µs | ±3.21 µs | 28,961 | 63.1 MB/s | 27.6% | 89 (21.3 KB) |
+| `watch_snapshot_diff_32` | 50 | **1.68 µs** | 2.34 µs | ±71.62 ns | 595,712 | — | 14.0% | 0 |
 <!-- END_BENCHMARK_TABLE -->
 
 ---

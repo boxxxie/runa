@@ -1,0 +1,7 @@
+| Benchmark (`-o:speed`) | Median | P95 | Throughput | Ops/s | Allocs/op |
+| :--- | ---: | ---: | ---: | ---: | ---: |
+{%- for row in this.rows %}
+| `{{ row.label | raw }}` | **{{ row.median | raw }}** | {{ row.p95 | raw }} | {% if row.has_throughput %}{{ row.throughput | raw }}{% else %}—{% end %} | {{ row.ops_per_sec | raw }} | {{ row.allocs | raw }} |
+{%- end %}
+
+> Recorded via [`hugi`](benchmarks/README.md) at commit `{{ this.commit | raw }}` ({{ this.samples_summary | raw }}, `-o:speed`).

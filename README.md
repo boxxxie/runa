@@ -316,18 +316,22 @@ t := temple.compiled_inline(`
 
 Temple's runtime and compiler pipeline are heavily optimized for zero-allocation execution and high throughput. See [`benchmarks/README.md`](benchmarks/README.md) for the full benchmark suite, methodology, and architectural breakdown.
 
-| Benchmark (`-o:speed`) | Time | Throughput | Allocs/op |
-| :--- | ---: | ---: | ---: |
-| `html_escape (clean 64KB doc)` | 16.3 µs | ~3,838 MB/s | 0 |
-| `html_escape (mixed XSS 64KB doc)` | 68.6 µs | ~911 MB/s | 0 |
-| `safe_url (valid https URL)` | 37.7 ns | ~1,038 MB/s | 0 |
-| `write_int + write_f64_prec (direct fast writers)` | 38.3 ns | ~622 MB/s | 0 |
-| `fmt("%s" / "%i") (compile-time strength reduced)` | 37.2 ns | ~1,564 MB/s | 0 |
-| `compiled_inline (card, reused buf)` | 50.7 ns | ~1,654 MB/s | 0 |
-| `compiled (50-row dashboard, 15.3 KB HTML, reused buf)` | 11.0 µs | ~1,326 MB/s | 0 |
-| `cli: lexer tokenize (dashboard.temple.html)` | 2.58 µs | ~448 MB/s | 0 |
-| `cli: pure transpile codegen (5.5 KB Odin code)` | 3.86 µs | ~1,357 MB/s | 0 |
-| `cli: full parse + inheritance + transpile` | 14.8 µs | ~121 MB/s | 32 |
+<!-- BEGIN_BENCHMARK_TABLE -->
+| Benchmark (`-o:speed`) | Median | P95 | Throughput | Ops/s | Allocs/op |
+| :--- | ---: | ---: | ---: | ---: | ---: |
+| `html_escape (clean 64KB doc)` | **26.74 µs** | 27.17 µs | 2,337.6 MB/s | 37,401 | 0 |
+| `html_escape (mixed XSS 64KB doc)` | **118.19 µs** | 119.60 µs | 528.8 MB/s | 8,461 | 0 |
+| `safe_url (valid https URL)` | **58.12 ns** | 101.73 ns | 672.8 MB/s | 17,206,082 | 0 |
+| `write_int + write_f64_prec (direct fast writers)` | **60.89 ns** | 65.61 ns | 391.5 MB/s | 16,422,229 | 0 |
+| `fmt("%s" / "%i") (compile-time strength reduced)` | **57.26 ns** | 74.51 ns | 1,015.9 MB/s | 17,463,623 | 0 |
+| `compiled_inline (card, reused buf)` | **78.37 ns** | 127.58 ns | 1,070.9 MB/s | 12,760,397 | 0 |
+| `compiled (50-row dashboard, 15.3 KB HTML, reused buf)` | **16.17 µs** | 17.44 µs | 901.0 MB/s | 61,844 | 0 |
+| `cli: lexer tokenize (dashboard.temple.html)` | **4.05 µs** | 4.21 µs | 285.6 MB/s | 246,872 | 0 |
+| `cli: pure transpile codegen (5.5 KB Odin code)` | **6.00 µs** | 6.18 µs | 872.6 MB/s | 166,641 | 0 |
+| `cli: full parse + inheritance + transpile` | **21.32 µs** | 27.45 µs | 83.8 MB/s | 46,909 | 32 (11.2 KB) |
+
+> Recorded via [`hugi`](benchmarks/README.md) at commit `fdfabeed9db3` (50 samples/benchmark, `-o:speed`).
+<!-- END_BENCHMARK_TABLE -->
 
 ```sh
 # Run the full benchmark suite
