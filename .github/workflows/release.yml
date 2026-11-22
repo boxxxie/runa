@@ -1,0 +1,171 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to publish (e.g. v1.0.0)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Build & Publish Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Resolve release tag
+        id: meta
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_TAG: ${{ inputs.tag }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          if [ "${EVENT_NAME}" = "workflow_dispatch" ]; then
+            TAG="${INPUT_TAG}"
+          else
+            TAG="${REF_NAME}"
+          fi
+          if ! [[ "${TAG}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+            echo "Invalid release tag '${TAG}'. Expected vX.Y.Z or vX.Y.Z-prerelease" >&2
+            exit 1
+          fi
+          VERSION="${TAG#v}"
+          PRERELEASE="false"
+          if [[ "${TAG}" == *-* ]]; then
+            PRERELEASE="true"
+          fi
+          echo "tag=${TAG}" >> "${GITHUB_OUTPUT}"
+          echo "version=${VERSION}" >> "${GITHUB_OUTPUT}"
+          echo "prerelease=${PRERELEASE}" >> "${GITHUB_OUTPUT}"
+
+      - name: Checkout metadata (CHANGELOG on main)
+        uses: actions/checkout@v4
+        with:
+          path: meta
+
+      - name: Checkout release source at tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.meta.outputs.tag }}
+          path: src
+          submodules: false
+
+      - name: Checkout hugi v0.1.4 (runner only)
+        uses: actions/checkout@v4
+        with:
+          repository: boxxxie/hugi
+          ref: v0.1.4
+          path: hugi
+          persist-credentials: false
+
+      - name: Init hugi obench submodule
+        run: git -C hugi submodule update --init deps/obench
+
+      - name: Setup Odin compiler
+        uses: laytan/setup-odin@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract release notes from CHANGELOG.md
+        env:
+          TAG: ${{ steps.meta.outputs.tag }}
+          VER: ${{ steps.meta.outputs.version }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY' > release_notes.md
+          import os, re
+          from pathlib import Path
+
+          tag = os.environ["TAG"]
+          version = os.environ["VER"]
+          changelog = Path("meta/CHANGELOG.md")
+          notes = ""
+          if changelog.is_file():
+              text = changelog.read_text(encoding="utf-8")
+              pattern = re.compile(rf"^## \[{re.escape(version)}\].*$", re.MULTILINE)
+              match = pattern.search(text)
+              if match:
+                  start = match.end()
+                  next_heading = re.search(r"^## \[", text[start:], re.MULTILINE)
+                  end = start + next_heading.start() if next_heading else len(text)
+                  notes = text[start:end].strip()
+          if notes:
+              print(notes)
+          else:
+              print(f"Release {tag} of `temple`.")
+          PY
+
+      - name: Verify release checks, tests, benchmarks, and documentation
+        working-directory: src
+        run: |
+          set -euo pipefail
+          odin report
+          odin test cli -all-packages
+          odin test .
+          odin run cli -- --check --warn-unused tests .
+          odin run cli -- --check --warn-unused tests/external_views --out=tests/external_views/templates_gen.odin --temple-import=../../
+          odin run cli -- --check --warn-unused benchmarks --out=benchmarks/templates_gen.odin --pkg=benchmarks --temple-import=..
+          odin test tests
+          odin check benchmarks -collection:hugi=../hugi/hugi
+          odin doc . > /dev/null
+
+      - name: Build CLI binary and package release artifacts
+        env:
+          TAG: ${{ steps.meta.outputs.tag }}
+          VER: ${{ steps.meta.outputs.version }}
+        run: |
+          set -euo pipefail
+          rm -rf dist
+          STAGE="dist/temple-${TAG}-linux-x86_64"
+          mkdir -p "${STAGE}"
+
+          (cd src && odin build cli -out:"$OLDPWD/${STAGE}/temple" -o:speed)
+          ACTUAL_VER="$("${STAGE}/temple" --version)"
+          EXPECTED_VER="temple ${VER}"
+          if [ "${ACTUAL_VER}" != "${EXPECTED_VER}" ]; then
+            echo "Version mismatch: got '${ACTUAL_VER}', expected '${EXPECTED_VER}'" >&2
+            exit 1
+          fi
+
+          cp src/README.md src/LICENSE "${STAGE}/"
+          cp meta/CHANGELOG.md "${STAGE}/CHANGELOG.md"
+
+          git -C src archive --format=tar.gz --prefix="temple-${TAG}/" -o "$PWD/dist/temple-${TAG}-src.tar.gz" "${TAG}"
+          git -C src archive --format=zip --prefix="temple-${TAG}/" -o "$PWD/dist/temple-${TAG}-src.zip" "${TAG}"
+          tar -C dist -czf "dist/temple-${TAG}-linux-x86_64.tar.gz" "temple-${TAG}-linux-x86_64"
+          rm -rf "${STAGE}"
+
+          (cd dist && sha256sum * > SHA256SUMS.txt && sha256sum -c SHA256SUMS.txt)
+
+      - name: Create or update GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.meta.outputs.tag }}
+          PRERELEASE: ${{ steps.meta.outputs.prerelease }}
+        run: |
+          set -euo pipefail
+          if gh release view "${TAG}" >/dev/null 2>&1; then
+            gh release upload "${TAG}" dist/* --clobber
+            gh release edit "${TAG}" --notes-file release_notes.md
+          else
+            EXTRA_FLAGS=()
+            if [ "${PRERELEASE}" = "true" ]; then
+              EXTRA_FLAGS+=(--prerelease)
+            fi
+            gh release create "${TAG}" dist/* \
+              --title "temple ${TAG}" \
+              --notes-file release_notes.md \
+              "${EXTRA_FLAGS[@]}"
+          fi
