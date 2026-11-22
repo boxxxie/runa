@@ -37,3 +37,17 @@ jobs:
 
       - name: Run end-to-end integration tests
         run: odin test tests
+
+      - name: Checkout hugi v0.1.4 (runner only)
+        uses: actions/checkout@v4
+        with:
+          repository: boxxxie/hugi
+          ref: v0.1.4
+          path: .tmp/hugi
+          persist-credentials: false
+
+      - name: Init hugi obench submodule
+        run: git -C .tmp/hugi submodule update --init deps/obench
+
+      - name: Check benchmark suite syntax & types
+        run: odin check benchmarks -collection:hugi=.tmp/hugi/hugi
