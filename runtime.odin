@@ -1,4 +1,4 @@
-package temple
+package runa
 
 import "core:fmt"
 import "core:io"
@@ -42,7 +42,7 @@ HTML_ESCAPE_ENTITIES := [6]string{
 }
 
 @(private = "file")
-__temple_escape_init_prefix :: #force_inline proc(
+__runa_escape_init_prefix :: #force_inline proc(
 	w: io.Writer,
 	buf: []byte,
 	str: string,
@@ -65,10 +65,10 @@ __temple_escape_init_prefix :: #force_inline proc(
 
 @(private = "file")
 @(optimization_mode = "favor_size")
-__temple_write_escaped_string_slow :: proc(w: io.Writer, str: string, first_esc: int) -> (n: int, err: io.Error) {
+__runa_write_escaped_string_slow :: proc(w: io.Writer, str: string, first_esc: int) -> (n: int, err: io.Error) {
 	esc_buf: [256]byte
 	buf_len: int
-	buf_len, n = __temple_escape_init_prefix(w, esc_buf[:], str, first_esc) or_return
+	buf_len, n = __runa_escape_init_prefix(w, esc_buf[:], str, first_esc) or_return
 
 	start := first_esc
 	for start < len(str) {
@@ -118,10 +118,10 @@ __temple_write_escaped_string_slow :: proc(w: io.Writer, str: string, first_esc:
 /*
 Writes a string to the writer with special characters that can be used in XSS escaped.
 */
-__temple_write_escaped_string :: proc(w: io.Writer, str: string) -> (n: int, err: io.Error) {
+__runa_write_escaped_string :: proc(w: io.Writer, str: string) -> (n: int, err: io.Error) {
 	for i := 0; i < len(str); i += 1 {
 		if HTML_ESCAPE_TABLE[str[i]] != 0 {
-			return __temple_write_escaped_string_slow(w, str, i)
+			return __runa_write_escaped_string_slow(w, str, i)
 		}
 	}
 	return io.write_string(w, str)
@@ -190,7 +190,7 @@ format_u64_backward :: #force_inline proc(buf: []byte, pos: int, val: u64) -> in
 /*
 Writes a signed integer in base-10 directly using a 24-byte stack buffer and a 2-digit lookup table.
 */
-__temple_write_int :: proc(w: io.Writer, val: int) -> (n: int, err: io.Error) {
+__runa_write_int :: proc(w: io.Writer, val: int) -> (n: int, err: io.Error) {
 	if val >= 0 && val < 10 {
 		idx := val * 2 + 1
 		return io.write_string(w, DEC_DIGITS_2[idx : idx + 1])
@@ -215,7 +215,7 @@ __temple_write_int :: proc(w: io.Writer, val: int) -> (n: int, err: io.Error) {
 Writes a float64 formatted with a fixed decimal precision (e.g. `%.2f`) directly using a stack buffer
 without invoking `fmt.wprintf` or HTML escaping.
 */
-__temple_write_f64_prec :: proc(w: io.Writer, val: f64, prec: int) -> (n: int, err: io.Error) {
+__runa_write_f64_prec :: proc(w: io.Writer, val: f64, prec: int) -> (n: int, err: io.Error) {
 	buf: [64]byte
 	// Fast fixed-point path for normal finite numbers with 0..6 decimal places
 	if prec >= 0 && prec <= 6 && val == val && val > -1e12 && val < 1e12 {
@@ -270,7 +270,7 @@ __temple_write_f64_prec :: proc(w: io.Writer, val: f64, prec: int) -> (n: int, e
 /*
 Writes a string wrapped in `.magic-text__word` spans for each space-separated word.
 */
-__temple_write_magic_string :: proc(w: io.Writer, str: string) -> (n: int, err: io.Error) {
+__runa_write_magic_string :: proc(w: io.Writer, str: string) -> (n: int, err: io.Error) {
 	if len(str) == 0 do return
 	MAGIC_OPEN  :: `<span class="magic-text__word">`
 	MAGIC_CLOSE :: `</span>`
@@ -360,7 +360,7 @@ __temple_write_magic_string :: proc(w: io.Writer, str: string) -> (n: int, err: 
 			}
 			n += io.write_string(w, MAGIC_OPEN) or_return
 			if has_esc {
-				n += __temple_write_escaped_string(w, word) or_return
+				n += __runa_write_escaped_string(w, word) or_return
 			} else {
 				n += io.write_string(w, word) or_return
 			}
@@ -374,27 +374,27 @@ __temple_write_magic_string :: proc(w: io.Writer, str: string) -> (n: int, err: 
 }
 
 @(private = "file")
-__TEMPLE_FMT_STACK_CAP :: 256
+__RUNA_FMT_STACK_CAP :: 256
 
 @(private = "file")
-__Temple_Fmt_Writer :: struct {
+__Runa_Fmt_Writer :: struct {
 	inner:     io.Writer,
 	escape:    bool,
 	flushed:   bool,
 	buf_len:   int,
 	n:         int,
 	err:       io.Error,
-	stack_buf: [__TEMPLE_FMT_STACK_CAP]byte,
+	stack_buf: [__RUNA_FMT_STACK_CAP]byte,
 }
 
 @(private = "file")
-__temple_fmt_flush_stack :: proc(state: ^__Temple_Fmt_Writer) -> bool {
+__runa_fmt_flush_stack :: proc(state: ^__Runa_Fmt_Writer) -> bool {
 	if state.buf_len == 0 {
 		return true
 	}
 	written: int
 	if state.escape {
-		written, state.err = __temple_write_escaped_string(state.inner, string(state.stack_buf[:state.buf_len]))
+		written, state.err = __runa_write_escaped_string(state.inner, string(state.stack_buf[:state.buf_len]))
 	} else {
 		written, state.err = io.write(state.inner, state.stack_buf[:state.buf_len])
 	}
@@ -405,7 +405,7 @@ __temple_fmt_flush_stack :: proc(state: ^__Temple_Fmt_Writer) -> bool {
 }
 
 @(private = "file")
-__temple_fmt_stream_proc :: proc(
+__runa_fmt_stream_proc :: proc(
 	stream_data: rawptr,
 	mode: io.Stream_Mode,
 	p: []byte,
@@ -415,23 +415,23 @@ __temple_fmt_stream_proc :: proc(
 	n: i64,
 	err: io.Error,
 ) {
-	state := (^__Temple_Fmt_Writer)(stream_data)
+	state := (^__Runa_Fmt_Writer)(stream_data)
 	#partial switch mode {
 	case .Write:
 		if state.err != nil {
 			return 0, state.err
 		}
-		if !state.flushed && state.buf_len + len(p) <= __TEMPLE_FMT_STACK_CAP {
+		if !state.flushed && state.buf_len + len(p) <= __RUNA_FMT_STACK_CAP {
 			copy(state.stack_buf[state.buf_len:], p)
 			state.buf_len += len(p)
 			return i64(len(p)), nil
 		}
-		if !__temple_fmt_flush_stack(state) {
+		if !__runa_fmt_flush_stack(state) {
 			return 0, state.err
 		}
 		written: int
 		if state.escape {
-			written, state.err = __temple_write_escaped_string(state.inner, string(p))
+			written, state.err = __runa_write_escaped_string(state.inner, string(p))
 		} else {
 			written, state.err = io.write(state.inner, p)
 		}
@@ -447,43 +447,43 @@ __temple_fmt_stream_proc :: proc(
 }
 
 @(private = "file")
-__temple_write_fmt :: proc(w: io.Writer, escape: bool, fmt_str: string, args: ..any) -> (n: int, err: io.Error) {
-	state := __Temple_Fmt_Writer{inner = w, escape = escape}
-	fmt.wprintf(io.Writer{procedure = __temple_fmt_stream_proc, data = &state}, fmt_str, ..args, flush = false)
+__runa_write_fmt :: proc(w: io.Writer, escape: bool, fmt_str: string, args: ..any) -> (n: int, err: io.Error) {
+	state := __Runa_Fmt_Writer{inner = w, escape = escape}
+	fmt.wprintf(io.Writer{procedure = __runa_fmt_stream_proc, data = &state}, fmt_str, ..args, flush = false)
 	if state.err == nil && state.buf_len > 0 {
-		_ = __temple_fmt_flush_stack(&state)
+		_ = __runa_fmt_flush_stack(&state)
 	}
 	return state.n, state.err
 }
 
-__temple_write_fmt_escaped :: proc(w: io.Writer, fmt_str: string, args: ..any) -> (n: int, err: io.Error) {
-	return __temple_write_fmt(w, true, fmt_str, ..args)
+__runa_write_fmt_escaped :: proc(w: io.Writer, fmt_str: string, args: ..any) -> (n: int, err: io.Error) {
+	return __runa_write_fmt(w, true, fmt_str, ..args)
 }
 
-__temple_write_fmt_raw :: proc(w: io.Writer, fmt_str: string, args: ..any) -> (n: int, err: io.Error) {
-	return __temple_write_fmt(w, false, fmt_str, ..args)
+__runa_write_fmt_raw :: proc(w: io.Writer, fmt_str: string, args: ..any) -> (n: int, err: io.Error) {
+	return __runa_write_fmt(w, false, fmt_str, ..args)
 }
 
-__temple_default_string :: proc(val, fallback: string) -> string {
+__runa_default_string :: proc(val, fallback: string) -> string {
 	return val if len(val) > 0 else fallback
 }
 
-__temple_default_slice :: proc(val, fallback: $S/[]$E) -> S {
+__runa_default_slice :: proc(val, fallback: $S/[]$E) -> S {
 	return val if len(val) > 0 else fallback
 }
 
-__temple_default_maybe :: proc(val: Maybe($T), fallback: T) -> T {
+__runa_default_maybe :: proc(val: Maybe($T), fallback: T) -> T {
 	return val.? or_else fallback
 }
 
-__temple_default :: proc {
-	__temple_default_string,
-	__temple_default_slice,
-	__temple_default_maybe,
+__runa_default :: proc {
+	__runa_default_string,
+	__runa_default_slice,
+	__runa_default_maybe,
 }
 
 @(private = "file")
-__temple_ascii_eq_fold :: proc(a, b: string) -> bool {
+__runa_ascii_eq_fold :: proc(a, b: string) -> bool {
 	if len(a) != len(b) do return false
 	for i in 0 ..< len(a) {
 		ca := a[i]
@@ -496,13 +496,13 @@ __temple_ascii_eq_fold :: proc(a, b: string) -> bool {
 }
 
 @(private = "file")
-__temple_ascii_has_prefix_fold :: proc(s, prefix: string) -> bool {
+__runa_ascii_has_prefix_fold :: proc(s, prefix: string) -> bool {
 	if len(s) < len(prefix) do return false
-	return __temple_ascii_eq_fold(s[:len(prefix)], prefix)
+	return __runa_ascii_eq_fold(s[:len(prefix)], prefix)
 }
 
 @(private = "file")
-__temple_is_safe_url :: proc(str: string) -> bool {
+__runa_is_safe_url :: proc(str: string) -> bool {
 	colon_idx := -1
 	for i in 0 ..< len(str) {
 		switch str[i] {
@@ -531,19 +531,19 @@ __temple_is_safe_url :: proc(str: string) -> bool {
 		}
 		break
 	}
-	if __temple_ascii_eq_fold(scheme, "http") ||
-	   __temple_ascii_eq_fold(scheme, "https") ||
-	   __temple_ascii_eq_fold(scheme, "mailto") ||
-	   __temple_ascii_eq_fold(scheme, "tel") {
+	if __runa_ascii_eq_fold(scheme, "http") ||
+	   __runa_ascii_eq_fold(scheme, "https") ||
+	   __runa_ascii_eq_fold(scheme, "mailto") ||
+	   __runa_ascii_eq_fold(scheme, "tel") {
 		return true
 	}
-	if __temple_ascii_eq_fold(scheme, "data") {
+	if __runa_ascii_eq_fold(scheme, "data") {
 		rest := str[colon_idx + 1:]
-		if __temple_ascii_has_prefix_fold(rest, "image/png;") ||
-		   __temple_ascii_has_prefix_fold(rest, "image/gif;") ||
-		   __temple_ascii_has_prefix_fold(rest, "image/jpeg;") ||
-		   __temple_ascii_has_prefix_fold(rest, "image/jpg;") ||
-		   __temple_ascii_has_prefix_fold(rest, "image/webp;") {
+		if __runa_ascii_has_prefix_fold(rest, "image/png;") ||
+		   __runa_ascii_has_prefix_fold(rest, "image/gif;") ||
+		   __runa_ascii_has_prefix_fold(rest, "image/jpeg;") ||
+		   __runa_ascii_has_prefix_fold(rest, "image/jpg;") ||
+		   __runa_ascii_has_prefix_fold(rest, "image/webp;") {
 			return true
 		}
 	}
@@ -555,11 +555,11 @@ Writes a URL string to the writer after validating its scheme (allowing http, ht
 safe data:image/... types, and relative URLs) and HTML-escaping the output. Unsafe schemes are
 replaced with `#ZgotmplZ`.
 */
-__temple_write_safe_url :: proc(w: io.Writer, str: string) -> (n: int, err: io.Error) {
-	if !__temple_is_safe_url(str) {
+__runa_write_safe_url :: proc(w: io.Writer, str: string) -> (n: int, err: io.Error) {
+	if !__runa_is_safe_url(str) {
 		return io.write_string(w, "#ZgotmplZ")
 	}
-	return __temple_write_escaped_string(w, str)
+	return __runa_write_escaped_string(w, str)
 }
 
 @(private = "file")
@@ -576,11 +576,11 @@ URL_UNRESERVED_TABLE := [256]bool{
 
 @(private = "file")
 @(optimization_mode = "favor_size")
-__temple_write_url_param_slow :: proc(w: io.Writer, str: string, first_esc: int) -> (n: int, err: io.Error) {
+__runa_write_url_param_slow :: proc(w: io.Writer, str: string, first_esc: int) -> (n: int, err: io.Error) {
 	hex := "0123456789ABCDEF"
 	pct_buf: [256]byte
 	buf_len: int
-	buf_len, n = __temple_escape_init_prefix(w, pct_buf[:], str, first_esc) or_return
+	buf_len, n = __runa_escape_init_prefix(w, pct_buf[:], str, first_esc) or_return
 
 	for i := first_esc; i < len(str); i += 1 {
 		b := str[i]
@@ -611,10 +611,10 @@ __temple_write_url_param_slow :: proc(w: io.Writer, str: string, first_esc: int)
 /*
 Writes a string to the writer with all non-RFC 3986 unreserved bytes percent-encoded (%XX).
 */
-__temple_write_url_param :: proc(w: io.Writer, str: string) -> (n: int, err: io.Error) {
+__runa_write_url_param :: proc(w: io.Writer, str: string) -> (n: int, err: io.Error) {
 	for i := 0; i < len(str); i += 1 {
 		if !URL_UNRESERVED_TABLE[str[i]] {
-			return __temple_write_url_param_slow(w, str, i)
+			return __runa_write_url_param_slow(w, str, i)
 		}
 	}
 	return io.write_string(w, str)
@@ -662,11 +662,11 @@ JS_ESCAPE_ENTITIES := [13]string{
 
 @(private = "file")
 @(optimization_mode = "favor_size")
-__temple_write_js_string_slow :: proc(w: io.Writer, str: string, first_esc: int) -> (n: int, err: io.Error) {
+__runa_write_js_string_slow :: proc(w: io.Writer, str: string, first_esc: int) -> (n: int, err: io.Error) {
 	hex_lower := "0123456789abcdef"
 	js_buf: [256]byte
 	buf_len: int
-	buf_len, n = __temple_escape_init_prefix(w, js_buf[:], str, first_esc) or_return
+	buf_len, n = __runa_escape_init_prefix(w, js_buf[:], str, first_esc) or_return
 
 	i := first_esc
 	for i < len(str) {
@@ -738,13 +738,13 @@ __temple_write_js_string_slow :: proc(w: io.Writer, str: string, first_esc: int)
 Writes a string to the writer escaped for safe interpolation inside JavaScript/JSON string literals
 and inline <script> blocks (preventing </script> breakout, quote breakout, and line-separator injection).
 */
-__temple_write_js_string :: proc(w: io.Writer, str: string) -> (n: int, err: io.Error) {
+__runa_write_js_string :: proc(w: io.Writer, str: string) -> (n: int, err: io.Error) {
 	for i := 0; i < len(str); i += 1 {
 		c := str[i]
 		code := JS_ESCAPE_TABLE[c]
 		if code != 0 {
 			if code != 14 || (i + 2 < len(str) && str[i + 1] == 0x80 && (str[i + 2] == 0xA8 || str[i + 2] == 0xA9)) {
-				return __temple_write_js_string_slow(w, str, i)
+				return __runa_write_js_string_slow(w, str, i)
 			}
 		}
 	}

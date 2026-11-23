@@ -1,4 +1,4 @@
-package temple
+package runa
 
 import "core:io"
 import "core:mem"
@@ -10,7 +10,7 @@ test_write_escaped_string :: proc(t: ^testing.T) {
 	sb := strings.builder_make(context.temp_allocator)
 	w := strings.to_writer(&sb)
 
-	n, err := __temple_write_escaped_string(w, `<script attr="a" b='c'>x & y</script>`)
+	n, err := __runa_write_escaped_string(w, `<script attr="a" b='c'>x & y</script>`)
 	testing.expect_value(t, err, nil)
 	expected := `&lt;script attr=&quot;a&quot; b=&#039;c&#039;&gt;x &amp; y&lt;/script&gt;`
 	testing.expect_value(t, strings.to_string(sb), expected)
@@ -22,7 +22,7 @@ test_write_magic_string_boundaries :: proc(t: ^testing.T) {
 	// 1. Empty string writes 0 bytes and no empty <span>
 	{
 		sb := strings.builder_make(context.temp_allocator)
-		n, err := __temple_write_magic_string(strings.to_writer(&sb), "")
+		n, err := __runa_write_magic_string(strings.to_writer(&sb), "")
 		testing.expect_value(t, err, nil)
 		testing.expect_value(t, n, 0)
 		testing.expect_value(t, strings.to_string(sb), "")
@@ -31,7 +31,7 @@ test_write_magic_string_boundaries :: proc(t: ^testing.T) {
 	// 2. Leading, trailing, and consecutive spaces do not emit empty <span> tags
 	{
 		sb := strings.builder_make(context.temp_allocator)
-		n, err := __temple_write_magic_string(strings.to_writer(&sb), "  hello  <b>world</b> ")
+		n, err := __runa_write_magic_string(strings.to_writer(&sb), "  hello  <b>world</b> ")
 		testing.expect_value(t, err, nil)
 		expected := `  <span class="magic-text__word">hello</span>  <span class="magic-text__word">&lt;b&gt;world&lt;/b&gt;</span> `
 		testing.expect_value(t, strings.to_string(sb), expected)
@@ -43,7 +43,7 @@ test_write_magic_string_boundaries :: proc(t: ^testing.T) {
 test_write_fmt_escaped_and_raw :: proc(t: ^testing.T) {
 	{
 		sb := strings.builder_make(context.temp_allocator)
-		n, err := __temple_write_fmt_escaped(strings.to_writer(&sb), "%s: $%.2f", "<Item & Co>", 19.5)
+		n, err := __runa_write_fmt_escaped(strings.to_writer(&sb), "%s: $%.2f", "<Item & Co>", 19.5)
 		testing.expect_value(t, err, nil)
 		expected := `&lt;Item &amp; Co&gt;: $19.50`
 		testing.expect_value(t, strings.to_string(sb), expected)
@@ -52,7 +52,7 @@ test_write_fmt_escaped_and_raw :: proc(t: ^testing.T) {
 
 	{
 		sb := strings.builder_make(context.temp_allocator)
-		n, err := __temple_write_fmt_raw(strings.to_writer(&sb), "<b>%s</b> (%i)", "raw", 42)
+		n, err := __runa_write_fmt_raw(strings.to_writer(&sb), "<b>%s</b> (%i)", "raw", 42)
 		testing.expect_value(t, err, nil)
 		expected := `<b>raw</b> (42)`
 		testing.expect_value(t, strings.to_string(sb), expected)
@@ -72,7 +72,7 @@ test_write_fmt_utf8_boundary_overflow :: proc(t: ^testing.T) {
 		sb := strings.builder_make(0, 1024, context.temp_allocator)
 		prev_temp := context.temp_allocator
 		context.temp_allocator = mem.panic_allocator()
-		n, err := __temple_write_fmt_escaped(strings.to_writer(&sb), "%s%s", prefix, "🚀<>")
+		n, err := __runa_write_fmt_escaped(strings.to_writer(&sb), "%s%s", prefix, "🚀<>")
 		context.temp_allocator = prev_temp
 
 		testing.expect_value(t, err, nil)
@@ -84,7 +84,7 @@ test_write_fmt_utf8_boundary_overflow :: proc(t: ^testing.T) {
 		sb := strings.builder_make(0, 1024, context.temp_allocator)
 		prev_temp := context.temp_allocator
 		context.temp_allocator = mem.panic_allocator()
-		n, err := __temple_write_fmt_raw(strings.to_writer(&sb), "%s%s", prefix, "🚀<b>ok</b>")
+		n, err := __runa_write_fmt_raw(strings.to_writer(&sb), "%s%s", prefix, "🚀<b>ok</b>")
 		context.temp_allocator = prev_temp
 
 		testing.expect_value(t, err, nil)
@@ -109,9 +109,9 @@ test_write_fmt_utf8_boundary_overflow :: proc(t: ^testing.T) {
 		return 0, .Unsupported
 	}
 	failing_writer := io.Writer{procedure = failing_proc}
-	_, esc_err := __temple_write_fmt_escaped(failing_writer, "hello %s", "<world>")
+	_, esc_err := __runa_write_fmt_escaped(failing_writer, "hello %s", "<world>")
 	testing.expect_value(t, esc_err, io.Error.Short_Write)
-	_, raw_err := __temple_write_fmt_raw(failing_writer, "hello %s", "<world>")
+	_, raw_err := __runa_write_fmt_raw(failing_writer, "hello %s", "<world>")
 	testing.expect_value(t, raw_err, io.Error.Short_Write)
 }
 
@@ -142,7 +142,7 @@ test_write_safe_url_allows_safe_schemes_and_relative_paths :: proc(t: ^testing.T
 
 	for c in cases {
 		sb := strings.builder_make(context.temp_allocator)
-		n, err := __temple_write_safe_url(strings.to_writer(&sb), c.input)
+		n, err := __runa_write_safe_url(strings.to_writer(&sb), c.input)
 		testing.expect_value(t, err, nil)
 		testing.expect_value(t, strings.to_string(sb), c.expected)
 		testing.expect_value(t, n, len(c.expected))
@@ -173,7 +173,7 @@ test_write_safe_url_neutralizes_dangerous_and_obfuscated_schemes :: proc(t: ^tes
 
 	for u in unsafe_urls {
 		sb := strings.builder_make(context.temp_allocator)
-		n, err := __temple_write_safe_url(strings.to_writer(&sb), u)
+		n, err := __runa_write_safe_url(strings.to_writer(&sb), u)
 		testing.expect_value(t, err, nil)
 		testing.expect_value(t, strings.to_string(sb), "#ZgotmplZ")
 		testing.expect_value(t, n, len("#ZgotmplZ"))
@@ -198,7 +198,7 @@ test_write_url_param_rfc3986_encoding :: proc(t: ^testing.T) {
 
 	for c in cases {
 		sb := strings.builder_make(context.temp_allocator)
-		n, err := __temple_write_url_param(strings.to_writer(&sb), c.input)
+		n, err := __runa_write_url_param(strings.to_writer(&sb), c.input)
 		testing.expect_value(t, err, nil)
 		testing.expect_value(t, strings.to_string(sb), c.expected)
 		testing.expect_value(t, n, len(c.expected))
@@ -223,7 +223,7 @@ test_write_js_string_prevents_script_breakout_and_escapes_specials :: proc(t: ^t
 
 	for c in cases {
 		sb := strings.builder_make(context.temp_allocator)
-		n, err := __temple_write_js_string(strings.to_writer(&sb), c.input)
+		n, err := __runa_write_js_string(strings.to_writer(&sb), c.input)
 		testing.expect_value(t, err, nil)
 		testing.expect_value(t, strings.to_string(sb), c.expected)
 		testing.expect_value(t, n, len(c.expected))
@@ -233,15 +233,15 @@ test_write_js_string_prevents_script_breakout_and_escapes_specials :: proc(t: ^t
 @(test)
 test_default_overloads_for_string_slice_and_maybe :: proc(t: ^testing.T) {
 	// 1. string
-	testing.expect_value(t, __temple_default("", "Anon"), "Anon")
-	testing.expect_value(t, __temple_default("Ada", "Anon"), "Ada")
+	testing.expect_value(t, __runa_default("", "Anon"), "Anon")
+	testing.expect_value(t, __runa_default("Ada", "Anon"), "Ada")
 
 	// 2. []T slice
 	empty_items: []string = {}
 	fallback_items := []string{"default_a", "default_b"}
 	non_empty_items := []string{"custom"}
-	res_empty := __temple_default(empty_items, fallback_items)
-	res_non_empty := __temple_default(non_empty_items, fallback_items)
+	res_empty := __runa_default(empty_items, fallback_items)
+	res_non_empty := __runa_default(non_empty_items, fallback_items)
 	testing.expect_value(t, len(res_empty), 2)
 	testing.expect_value(t, len(res_non_empty), 1)
 	testing.expect_value(t, res_non_empty[0], "custom")
@@ -249,13 +249,13 @@ test_default_overloads_for_string_slice_and_maybe :: proc(t: ^testing.T) {
 	// 3. Maybe(T)
 	none_str: Maybe(string) = nil
 	some_str: Maybe(string) = "Present"
-	testing.expect_value(t, __temple_default(none_str, "Missing"), "Missing")
-	testing.expect_value(t, __temple_default(some_str, "Missing"), "Present")
+	testing.expect_value(t, __runa_default(none_str, "Missing"), "Missing")
+	testing.expect_value(t, __runa_default(some_str, "Missing"), "Present")
 
 	none_int: Maybe(int) = nil
 	some_int: Maybe(int) = 99
-	testing.expect_value(t, __temple_default(none_int, 42), 42)
-	testing.expect_value(t, __temple_default(some_int, 42), 99)
+	testing.expect_value(t, __runa_default(none_int, 42), 42)
+	testing.expect_value(t, __runa_default(some_int, 42), 99)
 }
 
 @(test)
@@ -281,7 +281,7 @@ test_write_int_extremes_including_min_int :: proc(t: ^testing.T) {
 
 	for c in cases {
 		sb := strings.builder_make(context.temp_allocator)
-		n, err := __temple_write_int(strings.to_writer(&sb), c.val)
+		n, err := __runa_write_int(strings.to_writer(&sb), c.val)
 		testing.expect_value(t, err, nil)
 		testing.expect_value(t, strings.to_string(sb), c.expected)
 		testing.expect_value(t, n, len(c.expected))

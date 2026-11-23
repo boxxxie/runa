@@ -132,7 +132,7 @@ HEADLINE_SPECS :: [10]Headline_Spec {
 	},
 	{
 		full_name = "compiler_cli::lexer_tokenize",
-		label = "cli: lexer tokenize (dashboard.temple.html)",
+		label = "cli: lexer tokenize (dashboard.runa.html)",
 	},
 	{
 		full_name = "compiler_cli::pure_transpile_loc_on",
@@ -144,9 +144,9 @@ HEADLINE_SPECS :: [10]Headline_Spec {
 	},
 }
 
-suite_report_tmpl := compiled("templates/suite_report.temple.twig", Suite_Report_View)
-headline_table_tmpl := compiled("templates/headline_table.temple.twig", Headline_Table_View)
-bar_chart_tmpl := compiled("templates/bar_chart.temple.twig", Bar_Chart_View)
+suite_report_tmpl := compiled("templates/suite_report.runa.twig", Suite_Report_View)
+headline_table_tmpl := compiled("templates/headline_table.runa.twig", Headline_Table_View)
+bar_chart_tmpl := compiled("templates/bar_chart.runa.twig", Bar_Chart_View)
 
 Svg_Tick_View :: struct {
 	pos:   string,
@@ -361,7 +361,7 @@ pick_suite_metadata :: proc(
 	samples_summary: string,
 ) {
 	best_ts: i64 = -1
-	raw_suite := "temple"
+	raw_suite := "runa"
 	raw_commit := "unknown"
 	min_samples := max(int)
 	max_samples := 0
@@ -773,21 +773,21 @@ main :: proc() {
 	headline_view := build_headline_table_view(records, arena_alloc)
 	free_all(context.temp_allocator)
 
-	if !render_temple_svgs(records, suite_view.commit, arena_alloc) {
+	if !render_runa_svgs(records, suite_view.commit, arena_alloc) {
 		fmt.eprintln("bench_report: failed rendering SVG charts")
 		os.exit(1)
 	}
 
 	suite_md, suite_render_ok := render_suite_report(suite_view, context.allocator)
 	if !suite_render_ok {
-		fmt.eprintln("bench_report: failed to render suite_report.temple.twig")
+		fmt.eprintln("bench_report: failed to render suite_report.runa.twig")
 		os.exit(1)
 	}
 	defer delete(suite_md, context.allocator)
 
 	headline_md, headline_render_ok := render_headline_table(headline_view, context.allocator)
 	if !headline_render_ok {
-		fmt.eprintln("bench_report: failed to render headline_table.temple.twig")
+		fmt.eprintln("bench_report: failed to render headline_table.runa.twig")
 		os.exit(1)
 	}
 	defer delete(headline_md, context.allocator)
@@ -927,7 +927,7 @@ render_bar_svg_from_specs :: proc(
 }
 
 @(require_results)
-render_temple_svgs :: proc(records: []Hugi_Record, commit: string, allocator := context.allocator) -> bool {
+render_runa_svgs :: proc(records: []Hugi_Record, commit: string, allocator := context.allocator) -> bool {
 	if !os.exists(DEFAULT_RENDERS_DIR) {
 		if os.make_directory(DEFAULT_RENDERS_DIR) != nil {
 			return false

@@ -1,4 +1,4 @@
-package temple_cli
+package runa_cli
 
 import "core:os"
 import "core:path/filepath"
@@ -61,7 +61,7 @@ test_transpile_raw_output :: proc(t: ^testing.T) {
 	// Verify `raw(...)` emits a direct `write_string` call rather than HTML escaping
 	testing.expect(
 		t,
-		strings.contains(code, ".write_string(__temple_w, this.trusted_html) or_return"),
+		strings.contains(code, ".write_string(__runa_w, this.trusted_html) or_return"),
 		"expected raw() to transpile to direct write_string call",
 	)
 }
@@ -157,7 +157,7 @@ test_walker_skips_dot_directories_and_visits_root :: proc(t: ^testing.T) {
 	context.allocator = context.temp_allocator
 
 	cwd, _ := os.get_working_directory(context.temp_allocator)
-	tmp_root, _ := filepath.join({cwd, ".tmp", "temple_walker_test"}, context.temp_allocator)
+	tmp_root, _ := filepath.join({cwd, ".tmp", "runa_walker_test"}, context.temp_allocator)
 	hidden_dir, _ := filepath.join({tmp_root, ".git"}, context.temp_allocator)
 	sub_dir, _ := filepath.join({tmp_root, "routes"}, context.temp_allocator)
 
@@ -171,15 +171,15 @@ test_walker_skips_dot_directories_and_visits_root :: proc(t: ^testing.T) {
 
 	_ = os.write_entire_file(
 		root_file,
-		transmute([]byte)string(`package main; import "temple"; a :: proc() { _ = temple.compiled_inline("root", int) }`),
+		transmute([]byte)string(`package main; import "runa"; a :: proc() { _ = runa.compiled_inline("root", int) }`),
 	)
 	_ = os.write_entire_file(
 		sub_file,
-		transmute([]byte)string(`package routes; import "temple"; b :: proc() { _ = temple.compiled_inline("sub", int) }`),
+		transmute([]byte)string(`package routes; import "runa"; b :: proc() { _ = runa.compiled_inline("sub", int) }`),
 	)
 	_ = os.write_entire_file(
 		hidden_file,
-		transmute([]byte)string(`package ignored; import "temple"; c :: proc() { _ = temple.compiled_inline("hidden", int) }`),
+		transmute([]byte)string(`package ignored; import "runa"; c :: proc() { _ = runa.compiled_inline("hidden", int) }`),
 	)
 
 	calls := collect_compile_calls(tmp_root, context.temp_allocator)
@@ -411,7 +411,7 @@ test_collect_compile_calls_aliases_and_consts :: proc(t: ^testing.T) {
 	src_file, _ := filepath.join({tmp_dir, "routes.odin"}, context.temp_allocator)
 	code := `package routes
 
-import tpl "temple"
+import tpl "runa"
 
 DIR :: "pages/"
 HOME_PATH :: DIR + "home.html"
@@ -605,11 +605,11 @@ test_review_regressions :: proc(t: ^testing.T) {
 		// pkg_b also has an invalid second named parameter after `path = "..."`.
 		_ = os.write_entire_file(
 			file_a,
-			transmute([]byte)string(`package pkg_a; import "temple"; x := temple.compiled("index.html", int); y := temple.compiled("index.html", int)`),
+			transmute([]byte)string(`package pkg_a; import "runa"; x := runa.compiled("index.html", int); y := runa.compiled("index.html", int)`),
 		)
 		_ = os.write_entire_file(
 			file_b,
-			transmute([]byte)string(`package pkg_b; import "temple"; z := temple.compiled("index.html", int); w := temple.compiled(path = "other.html", bad_param = int)`),
+			transmute([]byte)string(`package pkg_b; import "runa"; z := runa.compiled("index.html", int); w := runa.compiled(path = "other.html", bad_param = int)`),
 		)
 
 		errs := make([dynamic]string, context.temp_allocator)
@@ -759,18 +759,18 @@ test_review_round_two_fixes :: proc(t: ^testing.T) {
 		_ = os.write_entire_file(
 			file_1,
 			transmute([]byte)string(`package slug_route
-import "temple"
+import "runa"
 TPL :: "pkg.html"
 p1 :: proc() {
 	LOCAL_ONLY :: "local.html"
-	_ = temple.compiled(LOCAL_ONLY, int)
+	_ = runa.compiled(LOCAL_ONLY, int)
 }
 p2 :: proc() {
 	TPL := "runtime_shadow.html"
-	_ = temple.compiled(TPL, int)
+	_ = runa.compiled(TPL, int)
 }
 p3 :: proc() {
-	_ = temple.compiled(path = "a.html", path = "b.html")
+	_ = runa.compiled(path = "a.html", path = "b.html")
 }
 `),
 		)
@@ -778,10 +778,10 @@ p3 :: proc() {
 		_ = os.write_entire_file(
 			file_2,
 			transmute([]byte)string(`package slug_route
-import "temple"
+import "runa"
 p4 :: proc() {
-	_ = temple.compiled(LOCAL_ONLY, int)
-	_ = temple.compiled(TPL, int)
+	_ = runa.compiled(LOCAL_ONLY, int)
+	_ = runa.compiled(TPL, int)
 }
 `),
 		)
@@ -803,15 +803,15 @@ test_review_round_three_fixes :: proc(t: ^testing.T) {
 	{
 		code_call, ok_call := transpile_to_string(`{{ raw(get_html()) }}`)
 		testing.expect(t, ok_call)
-		testing.expect(t, strings.contains(code_call, ".write_string(__temple_w, get_html()) or_return"), code_call)
+		testing.expect(t, strings.contains(code_call, ".write_string(__runa_w, get_html()) or_return"), code_call)
 
 		code_idx, ok_idx := transpile_to_string(`{{ raw(this.items[0]) }}`)
 		testing.expect(t, ok_idx)
-		testing.expect(t, strings.contains(code_idx, ".write_string(__temple_w, this.items[0]) or_return"), code_idx)
+		testing.expect(t, strings.contains(code_idx, ".write_string(__runa_w, this.items[0]) or_return"), code_idx)
 
 		code_paren, ok_paren := transpile_to_string(`{{ raw((this.a + this.b)) }}`)
 		testing.expect(t, ok_paren)
-		testing.expect(t, strings.contains(code_paren, ".write_string(__temple_w, (this.a + this.b)) or_return"), code_paren)
+		testing.expect(t, strings.contains(code_paren, ".write_string(__runa_w, (this.a + this.b)) or_return"), code_paren)
 	}
 
 	// 1.2 Multi-line tags: trailing newlines before `%}` succeed, while multi-statement `let` across lines is rejected
@@ -948,19 +948,19 @@ test_review_round_three_fixes :: proc(t: ^testing.T) {
 		_ = os.write_entire_file(
 			odin_file,
 			transmute([]byte)string(`package order_test
-import "temple"
+import "runa"
 PKG_PATH :: "pkg.html"
 render :: proc() {
 	_ = c(LATE_CONST, int)
 	LATE_CONST :: BASE_DIR + "view.html"
 	BASE_DIR   :: "views/"
-	c          :: temple.compiled
+	c          :: runa.compiled
 }
 shadow_param :: proc(PKG_PATH: string) {
-	_ = temple.compiled(PKG_PATH, int)
+	_ = runa.compiled(PKG_PATH, int)
 }
 shadow_return :: proc() -> (PKG_PATH: string) {
-	_ = temple.compiled(PKG_PATH, int)
+	_ = runa.compiled(PKG_PATH, int)
 	return ""
 }
 `),

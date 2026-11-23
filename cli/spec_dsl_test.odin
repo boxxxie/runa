@@ -1,4 +1,4 @@
-package temple_cli
+package runa_cli
 
 import "core:fmt"
 import "core:io"
@@ -29,10 +29,10 @@ given_template :: proc(d: ^Spec_Driver, path: string, content: string) {
 	driver_seed_template(d, path, content)
 }
 
-given_target_package :: proc(d: ^Spec_Driver, pkg_name: string, temple_import := "shared:temple") {
+given_target_package :: proc(d: ^Spec_Driver, pkg_name: string, runa_import := "shared:runa") {
 	d.pkg_name = pkg_name
-	d.temple_import = temple_import
-	d.ctx.external_pkg = len(pkg_name) > 0 && pkg_name != "temple"
+	d.runa_import = runa_import
+	d.ctx.external_pkg = len(pkg_name) > 0 && pkg_name != "runa"
 }
 
 given_existing_generated_file :: proc(d: ^Spec_Driver, content: string) {

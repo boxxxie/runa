@@ -1,4 +1,4 @@
-package temple_cli
+package runa_cli
 
 import "core:fmt"
 import "core:mem"
@@ -8,10 +8,12 @@ import "core:strings"
 import "core:time"
 
 // Intentional distinction from `is_watched_workspace_file`: `--warn-unused` only checks
-// explicit template suffixes (`.temple.twig`, `.temple.html`, `.twig`) and ignores plain
-// `.html` files so static HTML assets in the repository are not flagged as orphan templates.
+// explicit template suffixes (`.runa.twig`, `.runa.html`, `.temple.twig`, `.temple.html`, `.twig`)
+// and ignores plain `.html` files so static HTML assets in the repository are not flagged as orphan templates.
 is_template_candidate_file :: proc(path: string) -> bool {
-	return strings.has_suffix(path, ".temple.twig") ||
+	return strings.has_suffix(path, ".runa.twig") ||
+		strings.has_suffix(path, ".runa.html") ||
+		strings.has_suffix(path, ".temple.twig") ||
 		strings.has_suffix(path, ".temple.html") ||
 		strings.has_suffix(path, ".twig")
 }
@@ -67,6 +69,8 @@ Workspace_Snapshot :: map[string]File_Stamp
 
 is_watched_workspace_file :: proc(name: string) -> bool {
 	return strings.has_suffix(name, ".odin") ||
+		strings.has_suffix(name, ".runa.twig") ||
+		strings.has_suffix(name, ".runa.html") ||
 		strings.has_suffix(name, ".temple.twig") ||
 		strings.has_suffix(name, ".temple.html") ||
 		strings.has_suffix(name, ".twig") ||

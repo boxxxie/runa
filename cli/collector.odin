@@ -1,4 +1,4 @@
-package temple_cli
+package runa_cli
 
 import "core:fmt"
 import "core:mem"
@@ -31,7 +31,7 @@ Call_Path :: struct {
 	relpath:  string,
 }
 
-Temple_Proc_Kind :: enum {
+Runa_Proc_Kind :: enum {
 	None,
 	Compiled,
 	Compiled_Inline,
@@ -117,9 +117,9 @@ collect_from_dir :: proc(
 	}
 	slice.sort(matches[:])
 
-	// Read files in this package; check if any file in the package mentions "temple"
+	// Read files in this package; check if any file in the package mentions "runa"
 	raw_files := make([dynamic]Odin_Candidate_File, context.temp_allocator)
-	pkg_mentions_temple := false
+	pkg_mentions_runa := false
 
 	for match in matches {
 		fullpath, fp_err := os.get_absolute_path(match, context.temp_allocator)
@@ -136,17 +136,17 @@ collect_from_dir :: proc(
 			continue
 		}
 		src := string(src_bytes)
-		if strings.trim_space(src) == "" || is_generated_temple_source(src) {
+		if strings.trim_space(src) == "" || is_generated_runa_source(src) {
 			continue
 		}
-		if strings.contains(src, "temple") || strings.contains(src, "compiled") {
-			pkg_mentions_temple = true
+		if strings.contains(src, "runa") || strings.contains(src, "compiled") {
+			pkg_mentions_runa = true
 		}
 		append(&raw_files, Odin_Candidate_File{fullpath = fullpath, src = src})
 	}
 
-	// Fast pre-filter: if no file in this package mentions "temple", skip AST parsing completely
-	if !pkg_mentions_temple {
+	// Fast pre-filter: if no file in this package mentions "runa", skip AST parsing completely
+	if !pkg_mentions_runa {
 		return
 	}
 
@@ -158,7 +158,7 @@ collect_from_dir :: proc(
 	p.err = odin_silent_err_handler
 	p.warn = odin_silent_warn_handler
 
-	// Parse files in the package that either mention "temple" or define constants
+	// Parse files in the package that either mention "runa" or define constants
 	parsed_files := make([dynamic]^ast.File, context.temp_allocator)
 	for &rf in raw_files {
 		file := ast.new(ast.File, NO_POS, NO_POS)
@@ -194,18 +194,18 @@ collect_calls_from_parsed_files :: proc(
 	out_errors: ^[dynamic]string = nil,
 	allocator := context.temp_allocator,
 ) {
-	// Pass 1: Build per-file temple import alias table and package-level constant tables
-	file_temple_pkgs := make([][dynamic]string, len(parsed_files), allocator)
-	file_strict_temple_pkgs := make([][dynamic]string, len(parsed_files), allocator)
+	// Pass 1: Build per-file runa import alias table and package-level constant tables
+	file_runa_pkgs := make([][dynamic]string, len(parsed_files), allocator)
+	file_strict_runa_pkgs := make([][dynamic]string, len(parsed_files), allocator)
 	pkg_string_consts: map[string]^ast.Expr
-	pkg_proc_aliases: map[string]Temple_Proc_Kind
+	pkg_proc_aliases: map[string]Runa_Proc_Kind
 
-	has_any_temple_import := false
+	has_any_runa_import := false
 
 	for file, file_idx in parsed_files {
 		import_names := make([dynamic]string, 0, max(len(file.imports), 2), allocator)
 		strict_names := make([dynamic]string, 0, max(len(file.imports) + 1, 2), allocator)
-		append(&strict_names, "temple")
+		append(&strict_names, "runa")
 		for imp in file.imports {
 			trimmed_path := strings.trim(imp.fullpath, "\"`")
 			if strings.has_prefix(trimmed_path, "core:") ||
@@ -223,15 +223,15 @@ collect_calls_from_parsed_files :: proc(
 			}
 			alias := imp.name.text if len(imp.name.text) > 0 else base_pkg
 			if len(alias) > 0 && alias != "." && alias != ".." {
-				has_any_temple_import = true
+				has_any_runa_import = true
 				append(&import_names, alias)
-				if base_pkg == "temple" || alias == "temple" {
+				if base_pkg == "runa" || alias == "runa" {
 					append(&strict_names, alias)
 				}
 			}
 		}
-		file_temple_pkgs[file_idx] = import_names
-		file_strict_temple_pkgs[file_idx] = strict_names
+		file_runa_pkgs[file_idx] = import_names
+		file_strict_runa_pkgs[file_idx] = strict_names
 
 		// Collect top-level constant declarations
 		for decl in file.decls {
@@ -239,23 +239,23 @@ collect_calls_from_parsed_files :: proc(
 		}
 	}
 
-	// If no file in this package imports temple, fallback to allowing "temple" identifier
+	// If no file in this package imports runa, fallback to allowing "runa" identifier
 	// in case the user is in a sub-file or test setup without standard import path suffix
-	if !has_any_temple_import {
+	if !has_any_runa_import {
 		for file, file_idx in parsed_files {
-			if strings.contains(file.src, "temple") {
-				append(&file_temple_pkgs[file_idx], "temple")
+			if strings.contains(file.src, "runa") {
+				append(&file_runa_pkgs[file_idx], "runa")
 			}
 		}
 	}
 
-	// Resolve constant procedure aliases (e.g. `c :: temple.compiled`, `ci :: t.compiled_inline`, or `render :: views.compiled`)
-	// Iteratively resolve aliases in case of chained aliases `c1 :: temple.compiled; c2 :: c1`
+	// Resolve constant procedure aliases (e.g. `c :: runa.compiled`, `ci :: t.compiled_inline`, or `render :: views.compiled`)
+	// Iteratively resolve aliases in case of chained aliases `c1 :: runa.compiled; c2 :: c1`
 	for _ in 0 ..< 3 {
 		for file, file_idx in parsed_files {
-			temple_names := file_temple_pkgs[file_idx]
+			runa_names := file_runa_pkgs[file_idx]
 			for decl in file.decls {
-				collect_proc_aliases(decl, temple_names[:], &pkg_proc_aliases, allocator)
+				collect_proc_aliases(decl, runa_names[:], &pkg_proc_aliases, allocator)
 			}
 		}
 	}
@@ -275,19 +275,19 @@ collect_calls_from_parsed_files :: proc(
 		}
 	}
 
-	// Pass 2: Walk only files that import temple or reference a package-level temple alias
+	// Pass 2: Walk only files that import runa or reference a package-level runa alias
 	for file, file_idx in parsed_files {
-		temple_names := file_temple_pkgs[file_idx]
-		strict_names := file_strict_temple_pkgs[file_idx]
-		if len(temple_names) == 0 && len(pkg_proc_aliases) == 0 && !strings.contains(file.src, "compiled") {
+		runa_names := file_runa_pkgs[file_idx]
+		strict_names := file_strict_runa_pkgs[file_idx]
+		if len(runa_names) == 0 && len(pkg_proc_aliases) == 0 && !strings.contains(file.src, "compiled") {
 			continue
 		}
 
 		walk_ctx := File_Collect_Ctx {
 			pkg_fullpath        = pkg_fullpath,
 			file                = file,
-			temple_names        = temple_names[:],
-			strict_temple_names = strict_names[:],
+			runa_names        = runa_names[:],
+			strict_runa_names = strict_names[:],
 			proc_aliases        = pkg_proc_aliases,
 			string_consts       = resolved_consts,
 			raw_const_exprs     = pkg_string_consts,
@@ -317,7 +317,7 @@ collect_calls_from_parsed_files :: proc(
 						span := file.src[decl.pos.offset : decl.end.offset]
 						has_candidate := strings.index(span, "compiled") != -1
 						if !has_candidate && strings.index(span, "::") != -1 {
-							for t_name in temple_names {
+							for t_name in runa_names {
 								if strings.index(span, t_name) != -1 {
 									has_candidate = true
 									break
@@ -343,8 +343,8 @@ collect_calls_from_parsed_files :: proc(
 	}
 }
 
-clone_proc_aliases :: proc(src: map[string]Temple_Proc_Kind, allocator := context.temp_allocator) -> map[string]Temple_Proc_Kind {
-	res := make(map[string]Temple_Proc_Kind, len(src), allocator)
+clone_proc_aliases :: proc(src: map[string]Runa_Proc_Kind, allocator := context.temp_allocator) -> map[string]Runa_Proc_Kind {
+	res := make(map[string]Runa_Proc_Kind, len(src), allocator)
 	for k, v in src {
 		res[k] = v
 	}
@@ -396,8 +396,8 @@ collect_top_level_consts :: proc(stmt: ^ast.Stmt, out_consts: ^map[string]^ast.E
 
 collect_proc_aliases :: proc(
 	stmt: ^ast.Stmt,
-	temple_names: []string,
-	proc_aliases: ^map[string]Temple_Proc_Kind,
+	runa_names: []string,
+	proc_aliases: ^map[string]Runa_Proc_Kind,
 	allocator := context.temp_allocator,
 ) {
 	if stmt == nil do return
@@ -408,7 +408,7 @@ collect_proc_aliases :: proc(
 				if ident, ok := name_expr.derived_expr.(^ast.Ident); ok {
 					if ident.name == "compiled" || ident.name == "compiled_inline" {
 						if proc_aliases.allocator.procedure == nil {
-							proc_aliases^ = make(map[string]Temple_Proc_Kind, allocator)
+							proc_aliases^ = make(map[string]Runa_Proc_Kind, allocator)
 						}
 						proc_aliases[ident.name] = .None
 					} else if proc_aliases.allocator.procedure != nil {
@@ -424,15 +424,15 @@ collect_proc_aliases :: proc(
 			ident, ok := name_expr.derived_expr.(^ast.Ident)
 			if !ok do continue
 			val := ast.unparen_expr(d.values[i])
-			kind := resolve_temple_proc_expr(val, temple_names, proc_aliases^)
+			kind := resolve_runa_proc_expr(val, runa_names, proc_aliases^)
 			if kind != .None {
 				if proc_aliases.allocator.procedure == nil {
-					proc_aliases^ = make(map[string]Temple_Proc_Kind, allocator)
+					proc_aliases^ = make(map[string]Runa_Proc_Kind, allocator)
 				}
 				proc_aliases[ident.name] = kind
 			} else if ident.name == "compiled" || ident.name == "compiled_inline" {
 				if proc_aliases.allocator.procedure == nil {
-					proc_aliases^ = make(map[string]Temple_Proc_Kind, allocator)
+					proc_aliases^ = make(map[string]Runa_Proc_Kind, allocator)
 				}
 				proc_aliases[ident.name] = .None
 			} else if proc_aliases.allocator.procedure != nil {
@@ -442,11 +442,11 @@ collect_proc_aliases :: proc(
 	}
 }
 
-resolve_temple_proc_expr :: proc(
+resolve_runa_proc_expr :: proc(
 	expr: ^ast.Expr,
-	temple_names: []string,
-	proc_aliases: map[string]Temple_Proc_Kind,
-) -> Temple_Proc_Kind {
+	runa_names: []string,
+	proc_aliases: map[string]Runa_Proc_Kind,
+) -> Runa_Proc_Kind {
 	if expr == nil do return .None
 	expr := ast.unparen_expr(expr)
 
@@ -454,14 +454,14 @@ resolve_temple_proc_expr :: proc(
 	case ^ast.Selector_Expr:
 		ident, iok := e.expr.derived_expr.(^ast.Ident)
 		if !iok do return .None
-		is_temple_pkg := false
-		for tn in temple_names {
+		is_runa_pkg := false
+		for tn in runa_names {
 			if ident.name == tn {
-				is_temple_pkg = true
+				is_runa_pkg = true
 				break
 			}
 		}
-		if !is_temple_pkg do return .None
+		if !is_runa_pkg do return .None
 		switch e.field.name {
 		case "compiled":
 			return .Compiled
@@ -572,10 +572,10 @@ unquote_odin_string :: proc(lit: string) -> (string, bool) {
 	return "", false
 }
 
-is_strict_temple_call :: proc(
+is_strict_runa_call :: proc(
 	expr: ^ast.Expr,
-	strict_temple_names: []string,
-	proc_aliases: map[string]Temple_Proc_Kind,
+	strict_runa_names: []string,
+	proc_aliases: map[string]Runa_Proc_Kind,
 ) -> bool {
 	if expr == nil do return false
 	expr := ast.unparen_expr(expr)
@@ -584,8 +584,8 @@ is_strict_temple_call :: proc(
 	case ^ast.Selector_Expr:
 		ident, iok := e.expr.derived_expr.(^ast.Ident)
 		if !iok do return false
-		if ident.name == "temple" do return true
-		for tn in strict_temple_names {
+		if ident.name == "runa" do return true
+		for tn in strict_runa_names {
 			if ident.name == tn do return true
 		}
 		return false
@@ -601,9 +601,9 @@ is_strict_temple_call :: proc(
 File_Collect_Ctx :: struct {
 	pkg_fullpath:        string,
 	file:                ^ast.File,
-	temple_names:        []string,
-	strict_temple_names: []string,
-	proc_aliases:        map[string]Temple_Proc_Kind,
+	runa_names:        []string,
+	strict_runa_names: []string,
+	proc_aliases:        map[string]Runa_Proc_Kind,
 	string_consts:       map[string]string,
 	raw_const_exprs:     map[string]^ast.Expr,
 	calls:               ^[dynamic]Compile_Call,
@@ -631,7 +631,7 @@ ensure_owned_string_consts :: proc(ctx: ^File_Collect_Ctx) {
 }
 
 @(private = "file")
-ctx_set_proc_alias :: proc(ctx: ^File_Collect_Ctx, name: string, kind: Temple_Proc_Kind) {
+ctx_set_proc_alias :: proc(ctx: ^File_Collect_Ctx, name: string, kind: Runa_Proc_Kind) {
 	ensure_owned_proc_aliases(ctx)
 	ctx.proc_aliases[name] = kind
 	ctx_delete_string_const(ctx, name)
@@ -703,7 +703,7 @@ precollect_scope_consts :: proc(stmts: []^ast.Stmt, ctx: ^File_Collect_Ctx) {
 					if i >= len(vdecl.values) do break
 					if ident, iok := name_expr.derived_expr.(^ast.Ident); iok {
 						val_expr := vdecl.values[i]
-						if kind := resolve_temple_proc_expr(val_expr, ctx.temple_names, ctx.proc_aliases); kind != .None {
+						if kind := resolve_runa_proc_expr(val_expr, ctx.runa_names, ctx.proc_aliases); kind != .None {
 							ctx_set_proc_alias(ctx, ident.name, kind)
 						} else if str_val, sok := eval_const_string(val_expr, ctx.string_consts, ctx.raw_const_exprs); sok {
 							ctx_set_string_const(ctx, ident.name, str_val)
@@ -780,7 +780,7 @@ visit_odin_node :: proc(visitor: ^ast.Visitor, node: ^ast.Node) -> ^ast.Visitor 
 				if i >= len(n.values) do break
 				if ident, ok := name_expr.derived_expr.(^ast.Ident); ok {
 					val_expr := n.values[i]
-					if kind := resolve_temple_proc_expr(val_expr, ctx.temple_names, ctx.proc_aliases); kind != .None {
+					if kind := resolve_runa_proc_expr(val_expr, ctx.runa_names, ctx.proc_aliases); kind != .None {
 						ctx_set_proc_alias(ctx, ident.name, kind)
 					} else if str_val, sok := eval_const_string(val_expr, ctx.string_consts, ctx.raw_const_exprs); sok {
 						ctx_set_string_const(ctx, ident.name, str_val)
@@ -798,11 +798,11 @@ visit_odin_node :: proc(visitor: ^ast.Visitor, node: ^ast.Node) -> ^ast.Visitor 
 		}
 
 	case ^ast.Call_Expr:
-		kind := resolve_temple_proc_expr(n.expr, ctx.temple_names, ctx.proc_aliases)
+		kind := resolve_runa_proc_expr(n.expr, ctx.runa_names, ctx.proc_aliases)
 		if kind == .None {
 			return visitor
 		}
-		is_strict := is_strict_temple_call(n.expr, ctx.strict_temple_names, ctx.proc_aliases)
+		is_strict := is_strict_runa_call(n.expr, ctx.strict_runa_names, ctx.proc_aliases)
 
 		// Walk arguments first in case of nested expressions
 		for arg in n.args {
@@ -816,7 +816,7 @@ visit_odin_node :: proc(visitor: ^ast.Visitor, node: ^ast.Node) -> ^ast.Visitor 
 			collect_error(
 				ctx,
 				n.pos,
-				"missing arguments in call to `temple.compiled` (expected `path` and `T`)",
+				"missing arguments in call to `runa.compiled` (expected `path` and `T`)",
 			)
 			return nil
 		}
@@ -828,7 +828,7 @@ visit_odin_node :: proc(visitor: ^ast.Visitor, node: ^ast.Node) -> ^ast.Visitor 
 			collect_error(
 				ctx,
 				n.args[2].pos,
-				"too many arguments in call to `temple.compiled` (expected at most 2: `path` and `T`)",
+				"too many arguments in call to `runa.compiled` (expected at most 2: `path` and `T`)",
 			)
 			return nil
 		}
@@ -846,7 +846,7 @@ visit_odin_node :: proc(visitor: ^ast.Visitor, node: ^ast.Node) -> ^ast.Visitor 
 					if field_ident.name == "path" {
 						if has_path {
 							if is_strict {
-								collect_error(ctx, fv.pos, "duplicate `path` argument in call to `temple.compiled`")
+								collect_error(ctx, fv.pos, "duplicate `path` argument in call to `runa.compiled`")
 							}
 							had_arg_err = true
 						}
@@ -855,7 +855,7 @@ visit_odin_node :: proc(visitor: ^ast.Visitor, node: ^ast.Node) -> ^ast.Visitor 
 					} else if field_ident.name == "T" {
 						if has_T {
 							if is_strict {
-								collect_error(ctx, fv.pos, "duplicate `T` argument in call to `temple.compiled`")
+								collect_error(ctx, fv.pos, "duplicate `T` argument in call to `runa.compiled`")
 							}
 							had_arg_err = true
 						}
@@ -865,7 +865,7 @@ visit_odin_node :: proc(visitor: ^ast.Visitor, node: ^ast.Node) -> ^ast.Visitor 
 							collect_error(
 								ctx,
 								fv.pos,
-								"unknown named parameter %q in call to `temple.compiled` (expected `path` or `T`)",
+								"unknown named parameter %q in call to `runa.compiled` (expected `path` or `T`)",
 								field_ident.name,
 							)
 						}
@@ -878,7 +878,7 @@ visit_odin_node :: proc(visitor: ^ast.Visitor, node: ^ast.Node) -> ^ast.Visitor 
 						collect_error(
 							ctx,
 							arg.pos,
-							"positional argument cannot follow named argument in call to `temple.compiled`",
+							"positional argument cannot follow named argument in call to `runa.compiled`",
 						)
 					}
 					had_arg_err = true
@@ -902,7 +902,7 @@ visit_odin_node :: proc(visitor: ^ast.Visitor, node: ^ast.Node) -> ^ast.Visitor 
 			collect_error(
 				ctx,
 				n.pos,
-				"missing `path` argument in call to `temple.compiled`",
+				"missing `path` argument in call to `runa.compiled`",
 			)
 			return nil
 		}
@@ -914,7 +914,7 @@ visit_odin_node :: proc(visitor: ^ast.Visitor, node: ^ast.Node) -> ^ast.Visitor 
 			collect_error(
 				ctx,
 				n.pos,
-				"missing `T` argument in call to `temple.compiled`",
+				"missing `T` argument in call to `runa.compiled`",
 			)
 			return nil
 		}
@@ -927,7 +927,7 @@ visit_odin_node :: proc(visitor: ^ast.Visitor, node: ^ast.Node) -> ^ast.Visitor 
 			collect_error(
 				ctx,
 				path_arg.pos,
-				"the path/template argument of `temple.compiled` and `temple.compiled_inline` must be a compile-time constant string expression",
+				"the path/template argument of `runa.compiled` and `runa.compiled_inline` must be a compile-time constant string expression",
 			)
 			return nil
 		}

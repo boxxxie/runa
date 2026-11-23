@@ -1,18 +1,18 @@
-# Temple
+# Runa
 
-[![CI](https://github.com/boxxxie/temple/actions/workflows/ci.yml/badge.svg)](https://github.com/boxxxie/temple/actions/workflows/ci.yml)
+[![CI](https://github.com/boxxxie/runa/actions/workflows/ci.yml/badge.svg)](https://github.com/boxxxie/runa/actions/workflows/ci.yml)
 [![Version](https://img.shields.io/badge/version-v1.0.0-blue.svg)](CHANGELOG.md)
 [![Odin](https://img.shields.io/badge/Odin-dev--2026--09%2B-3882D2.svg)](https://odin-lang.org)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-A fast, zero-overhead, compile-time HTML templating engine for [Odin](https://odin-lang.org) that transpiles Twig/Mustache-inspired templates directly into native Odin procedures.
+A fast, zero-overhead, ahead-of-time HTML template compiler for [Odin](https://odin-lang.org) that transpiles Twig/Mustache-inspired templates directly into native Odin procedures. *(Originally forked from `laytan/temple` and substantially redesigned as `runa`.)*
 
 ## Features
 
 ### Zero-Overhead Native Codegen
 * **Compile-time transpilation** — Templates compile down to plain `"contextless"` Odin procedures (`proc(w: io.Writer, this: T)`). There is no runtime template parser, AST interpreter, reflection, or heap allocation during rendering.
 * **Single self-contained binary** — Template files are only needed at build time; nothing extra to ship or load at runtime.
-* **Compile-time `fmt` strength reduction** — Single-argument `fmt("%s")`, `fmt("%i")` / `fmt("%d")`, and `fmt("%.Nf")` expressions are decomposed at compile time into static string writes (coalesced with adjacent HTML) and direct stack-buffered numeric writers (`__temple_write_int`, `__temple_write_f64_prec`).
+* **Compile-time `fmt` strength reduction** — Single-argument `fmt("%s")`, `fmt("%i")` / `fmt("%d")`, and `fmt("%.Nf")` expressions are decomposed at compile time into static string writes (coalesced with adjacent HTML) and direct stack-buffered numeric writers (`__runa_write_int`, `__runa_write_f64_prec`).
 * **Precomputed buffer sizing (`approx_bytes`)** — Static output size estimation across text, loops, `if`/`switch` branches, macros, and `embed` trees lets callers pre-allocate output buffers in a single allocation or reuse a buffer with **0 allocations/op**.
 
 ### Context-Aware Security by Default
@@ -37,53 +37,53 @@ A fast, zero-overhead, compile-time HTML templating engine for [Odin](https://od
 
 ## Quick Start
 
-Temple consists of two parts: the compiler CLI (`cli/`) and a lightweight runtime package (`runtime.odin`). The CLI scans your Odin project for `compiled` and `compiled_inline` calls (including package/local string constants and procedure aliases) and generates the backing Odin procedures.
+Runa consists of two parts: the compiler CLI (`cli/`) and a lightweight runtime package (`runtime.odin`). The CLI scans your Odin project for `compiled` and `compiled_inline` calls (including package/local string constants and procedure aliases) and generates the backing Odin procedures.
 
 ### Option A: Shared Collection / External Package Mode (`-out` / `-pkg`)
 
-Install `temple` once into Odin's `shared:` collection (or as a dependency) and generate template procedures directly into your own package:
+Install `runa` once into Odin's `shared:` collection (or as a dependency) and generate template procedures directly into your own package:
 
 ```sh
 # 1. Build the compiler CLI
-odin build temple/cli -o:speed -out:temple_cli
+odin build runa/cli -o:speed -out:runa_cli
 
 # 2. Generate templates into your package before building
-./temple_cli src -out:src/views/templates_gen.odin -pkg:views
+./runa_cli src -out:src/views/templates_gen.odin -pkg:views
 ```
 
 | Flag | Description |
 | :--- | :--- |
 | `-out:<file>` / `--out=<file>` | Destination `.odin` file to generate |
 | `-pkg:<package>` / `--pkg=<package>` | Target package name (if omitted, automatically inferred from existing `.odin` files in the output directory) |
-| `-temple-import:<path>` / `--temple-import=<path>` | Import path for the `temple` runtime library (defaults to `"shared:temple"` when generating outside `package temple`) |
+| `-runa-import:<path>` / `--runa-import=<path>` | Import path for the `runa` runtime library (defaults to `"shared:runa"` when generating outside `package runa`; `-temple-import` is also accepted as a legacy alias) |
 | `--check` | Verify all templates compile cleanly and the generated `.odin` file on disk is up-to-date without modifying disk (exits `1` if missing or stale) |
-| `--warn-unused` | Emit warnings for any `.temple.twig`, `.temple.html`, or `.twig` files in the project directory never referenced by `compiled`, `extends`, or `embed` |
+| `--warn-unused` | Emit warnings for any `.runa.twig`, `.runa.html`, `.temple.twig`, `.temple.html`, or `.twig` files in the project directory never referenced by `compiled`, `extends`, or `embed` |
 | `--watch` | Poll `.odin` and template files for changes and incrementally re-run compilation during development |
 | `--version` / `-v` | Print the compiler version |
 
 ### Option B: Vendored Submodule Mode
 
 ```sh
-# 1. Add temple as a submodule
-git submodule add https://github.com/laytan/temple
+# 1. Add runa as a submodule
+git submodule add https://github.com/boxxxie/runa
 
 # 2. Build the compiler CLI
-odin build temple/cli -o:speed -out:temple_cli
+odin build runa/cli -o:speed -out:runa_cli
 
-# 3. Generate temple/templates.odin (first arg: project root, second arg: temple directory)
-./temple_cli . temple
+# 3. Generate runa/templates.odin (first arg: project root, second arg: runa directory)
+./runa_cli . runa
 ```
 
 ### Example
 
-Ending template filenames with `.temple.twig` or `.temple.html` is recommended for editor Twig/HTML syntax highlighting.
+Ending template filenames with `.runa.twig` or `.runa.html` is recommended for editor Twig/HTML syntax highlighting (legacy `.temple.twig` / `.temple.html` suffixes remain supported).
 
 ```twig
-<!-- templates/home.temple.twig -->
+<!-- templates/home.runa.twig -->
 
 Hello, {{ this.name }}!
 
-{% if this.name == "Laytan" %}Cool Name!{% end %}
+{% if this.name == "Odin" %}Cool Name!{% end %}
 
 <!-- Cast or pipe non-string values (int, i64, f32, f64, byte, rune, len, etc.) -->
 The count is {{ int(this.count) }}
@@ -95,54 +95,54 @@ The count is {{ int(this.count) }}
 package main
 
 import "core:os"
-import "temple"
+import "runa"
 
 Home_This :: struct {
 	name:  string,
 	count: int,
 }
 
-home := temple.compiled("templates/home.temple.twig", Home_This)
+home := runa.compiled("templates/home.runa.twig", Home_This)
 
 // Or inline templates:
-// home := temple.compiled_inline(`Hello, {{ this.name }}`, Home_This)
+// home := runa.compiled_inline(`Hello, {{ this.name }}`, Home_This)
 
 main :: proc() {
 	w := os.to_stream(os.stdout)
-	_, _ = home.with(w, {"Laytan", 10})
+	_, _ = home.with(w, {"Odin", 10})
 }
 ```
 
-Running `temple_cli` generates the following zero-overhead Odin code:
+Running `runa_cli` generates the following zero-overhead Odin code:
 
 ```odin
-package temple
+package runa
 
-import __temple_io "core:io"
+import __runa_io "core:io"
 
 compiled :: proc "contextless" ($path: string, $T: typeid) -> Compiled(T) {
-	when path == "templates/home.temple.twig" {
+	when path == "templates/home.runa.twig" {
 		return {
-			with = proc(__temple_w: __temple_io.Writer, this: T) -> (__temple_n: int, __temple_err: __temple_io.Error) {
-				__temple_n += __temple_io.write_string(__temple_w, "<!-- templates/home.temple.twig -->\n\nHello, ") or_return /* 1:1 in template */
-				__temple_n += __temple_write_escaped_string(__temple_w, this.name) or_return /* 3:8 in template */
-				__temple_n += __temple_io.write_string(__temple_w, "!\n") or_return /* 3:23 in template */
-				if this.name == "Laytan" { /* 5:1 in template */
-					__temple_n += __temple_io.write_string(__temple_w, "Cool Name!") or_return /* 5:31 in template */
+			with = proc(__runa_w: __runa_io.Writer, this: T) -> (__runa_n: int, __runa_err: __runa_io.Error) {
+				__runa_n += __runa_io.write_string(__runa_w, "<!-- templates/home.runa.twig -->\n\nHello, ") or_return /* 1:1 in template */
+				__runa_n += __runa_write_escaped_string(__runa_w, this.name) or_return /* 3:8 in template */
+				__runa_n += __runa_io.write_string(__runa_w, "!\n") or_return /* 3:23 in template */
+				if this.name == "Odin" { /* 5:1 in template */
+					__runa_n += __runa_io.write_string(__runa_w, "Cool Name!") or_return /* 5:29 in template */
 				}
-				__temple_n += __temple_io.write_string(__temple_w, "\n\n<!-- Cast or pipe non-string values (int, i64, f32, f64, byte, rune, len, etc.) -->\nThe count is ") or_return /* 5:50 in template */
-				__temple_n += __temple_write_int(__temple_w, int(this.count)) or_return /* 8:14 in template */
-				__temple_n += __temple_io.write_string(__temple_w, "\n") or_return /* 8:35 in template */
+				__runa_n += __runa_io.write_string(__runa_w, "\n\n<!-- Cast or pipe non-string values (int, i64, f32, f64, byte, rune, len, etc.) -->\nThe count is ") or_return /* 5:48 in template */
+				__runa_n += __runa_write_int(__runa_w, int(this.count)) or_return /* 8:14 in template */
+				__runa_n += __runa_io.write_string(__runa_w, "\n") or_return /* 8:35 in template */
 				for i in 1..=5 { /* 10:1 in template */
-					__temple_n += __temple_write_int(__temple_w, int(i)) or_return /* 10:21 in template */
+					__runa_n += __runa_write_int(__runa_w, int(i)) or_return /* 10:21 in template */
 				}
-				__temple_n += __temple_io.write_string(__temple_w, "\n") or_return /* 10:42 in template */
+				__runa_n += __runa_io.write_string(__runa_w, "\n") or_return /* 10:42 in template */
 				return
 			},
-			approx_bytes = 197,
+			approx_bytes = 195,
 		}
 	} else {
-		#panic("undefined template \"" + path + "\" did you run the temple transpiler?")
+		#panic("undefined template \"" + path + "\" did you run the runa transpiler?")
 	}
 }
 ```
@@ -170,22 +170,22 @@ Output tags `{{ ... }}` evaluate any Odin expression and HTML-escape strings by 
 
 ```odin
 // Full Odin expressions (e.g. Maybe unwrap with or_else, ternary conditionals):
-t := temple.compiled_inline(`{{ this.name.? or_else this.last_name }}`, struct{ name: Maybe(string), last_name: string })
+t := runa.compiled_inline(`{{ this.name.? or_else this.last_name }}`, struct{ name: Maybe(string), last_name: string })
 
 // Context-aware URL, query param, and inline <script> escaping:
-t := temple.compiled_inline(`<a href="{{ this.link | default("/home") | url }}?q={{ this.query | url_param }}">Link</a>`, Link_Ctx)
-t := temple.compiled_inline(`<script>const msg = "{{ this.payload | js }}";</script>`, Script_Ctx)
+t := runa.compiled_inline(`<a href="{{ this.link | default("/home") | url }}?q={{ this.query | url_param }}">Link</a>`, Link_Ctx)
+t := runa.compiled_inline(`<script>const msg = "{{ this.payload | js }}";</script>`, Script_Ctx)
 
 // Formatted output (single-arg %s, %i, %d, %.Nf are strength-reduced at compile time; multi-arg streams with 0 allocations):
-t := temple.compiled_inline(`{{ this.price | fmt("$%.2f") }}`, struct{ price: f64 })
-t := temple.compiled_inline(`{{ fmt("%s (%i)", this.name, this.count) }}`, struct{ name: string, count: int })
-t := temple.compiled_inline(`{{ this.price | fmt("<b>$%.2f</b>") | raw }}`, struct{ price: f64 })
+t := runa.compiled_inline(`{{ this.price | fmt("$%.2f") }}`, struct{ price: f64 })
+t := runa.compiled_inline(`{{ fmt("%s (%i)", this.name, this.count) }}`, struct{ name: string, count: int })
+t := runa.compiled_inline(`{{ this.price | fmt("<b>$%.2f</b>") | raw }}`, struct{ price: f64 })
 ```
 
 ### Conditionals (`if` / `else if` / `elseif` / `else`)
 
 ```odin
-t := temple.compiled_inline(`
+t := runa.compiled_inline(`
 {% if this.count == 0 %}
     There are no items in your basket.
 {% else if this.count == 1 %}
@@ -203,7 +203,7 @@ t := temple.compiled_inline(`
 Supports Odin value switches, type switches (`switch v in this.payload`), and enum `#partial switch`:
 
 ```odin
-t := temple.compiled_inline(`
+t := runa.compiled_inline(`
 {% #partial switch this.status %}
     {% case .Loading %}
         <span>Loading...</span>
@@ -220,7 +220,7 @@ t := temple.compiled_inline(`
 Bind local variables inside templates using `=`, `:=`, or explicit `: Type =`:
 
 ```odin
-t := temple.compiled_inline(`
+t := runa.compiled_inline(`
 {% let total = this.price * this.qty %}
 {% let label: string = "Total" %}
 <span>{{ label }}: {{ int(total) }}</span>
@@ -232,8 +232,8 @@ t := temple.compiled_inline(`
 Any valid Odin `for` loop clause works:
 
 ```odin
-t := temple.compiled_inline(`{% for i in 0..<5 %} {{ int(i) }} {% end %}`, struct{})
-t := temple.compiled_inline(`{% for book, idx in this.books %} {{ int(idx) }}: {{ book.title }} {% end %}`, Library_Ctx)
+t := runa.compiled_inline(`{% for i in 0..<5 %} {{ int(i) }} {% end %}`, struct{})
+t := runa.compiled_inline(`{% for book, idx in this.books %} {{ int(idx) }}: {{ book.title }} {% end %}`, Library_Ctx)
 ```
 
 ### Layout Inheritance (`extends`, `block`, `super`)
@@ -270,13 +270,13 @@ Embed sub-templates with the current `this`, narrow context via `with`, or pass 
 
 ```odin
 // Inherit current `this`:
-t := temple.compiled_inline(`{% embed "header.temple.twig" %}`, Page_Ctx)
+t := runa.compiled_inline(`{% embed "header.runa.twig" %}`, Page_Ctx)
 
 // Pass a sub-struct as `this`:
-t := temple.compiled_inline(`{% embed "header.temple.twig" with this.header %}`, struct{ header: Header_Data })
+t := runa.compiled_inline(`{% embed "header.runa.twig" with this.header %}`, struct{ header: Header_Data })
 
 // Pass component-style named props (synthesizes an inline typed struct for `this`):
-t := temple.compiled_inline(`
+t := runa.compiled_inline(`
 {% embed "components/card.html"(
     this.title,
     count = len(this.items),
@@ -314,7 +314,7 @@ t := temple.compiled_inline(`
 
 ## Performance & Benchmarks
 
-Temple's runtime and compiler pipeline are heavily optimized for zero-allocation execution and high throughput. See [`benchmarks/README.md`](benchmarks/README.md) for the full benchmark suite, methodology, and architectural breakdown.
+Runa's runtime and compiler pipeline are heavily optimized for zero-allocation execution and high throughput. See [`benchmarks/README.md`](benchmarks/README.md) for the full benchmark suite, methodology, and architectural breakdown.
 
 <!-- BEGIN_BENCHMARK_TABLE -->
 | Benchmark (`-o:speed`) | Median | P95 | Throughput | Ops/s | Allocs/op |

@@ -6,6 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+- **Project Renamed from `temple` to `runa`**: Detached from upstream `laytan/temple` and renamed the repository, packages (`package runa`, `package runa_cli`, `package runa_tests`), CLI flags (`-runa-import`, with `-temple-import` preserved as a legacy alias), generated identifiers (`__runa_*`), and primary template suffixes (`.runa.twig`, `.runa.html`, while continuing to accept `.temple.twig` and `.temple.html`).
+
 ## [1.0.0] - 2026-11-01
 
 ### Added

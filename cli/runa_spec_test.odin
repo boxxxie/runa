@@ -1,4 +1,4 @@
-package temple_cli
+package runa_cli
 
 import "core:mem"
 import "core:strings"
@@ -91,17 +91,17 @@ spec_odin_call_collection_resolves_out_of_order_consts_and_rejects_shadowed_para
 	defer scenario_end(s)
 
 	upon_scanning_odin_source(s, `package sample
-import "temple"
+import "runa"
 
 PKG_PATH :: "pkg_level.html"
 
 valid_out_of_order :: proc() {
-	_ = temple.compiled(LATE_LOCAL, int)
+	_ = runa.compiled(LATE_LOCAL, int)
 	LATE_LOCAL :: "late_local.html"
 }
 
 shadowed_by_param :: proc(PKG_PATH: string) {
-	_ = temple.compiled(PKG_PATH, int)
+	_ = runa.compiled(PKG_PATH, int)
 }
 `)
 
@@ -123,27 +123,27 @@ spec_output_expressions_and_pseudo_casts :: proc(t: ^testing.T) {
 	cases := []Output_Case{
 		{
 			template      = "{{ this.title }}",
-			expected_call = "__temple_write_escaped_string(__temple_w, this.title) or_return",
+			expected_call = "__runa_write_escaped_string(__runa_w, this.title) or_return",
 		},
 		{
 			template      = "{{ raw(get_html()) }}",
-			expected_call = "__temple_io.write_string(__temple_w, get_html()) or_return",
+			expected_call = "__runa_io.write_string(__runa_w, get_html()) or_return",
 		},
 		{
 			template      = "{{ raw(this.items[0]) }}",
-			expected_call = "__temple_io.write_string(__temple_w, this.items[0]) or_return",
+			expected_call = "__runa_io.write_string(__runa_w, this.items[0]) or_return",
 		},
 		{
 			template      = "{{ raw((this.a + this.b)) }}",
-			expected_call = "__temple_io.write_string(__temple_w, (this.a + this.b)) or_return",
+			expected_call = "__runa_io.write_string(__runa_w, (this.a + this.b)) or_return",
 		},
 		{
 			template      = "{{ magic(get_title()) }}",
-			expected_call = "__temple_write_magic_string(__temple_w, get_title()) or_return",
+			expected_call = "__runa_write_magic_string(__runa_w, get_title()) or_return",
 		},
 		{
 			template      = "{{ len(this.items) }}",
-			expected_call = "__temple_write_int(__temple_w, len(this.items)) or_return",
+			expected_call = "__runa_write_int(__runa_w, len(this.items)) or_return",
 		},
 	}
 
@@ -197,12 +197,12 @@ spec_component_embed_with_named_props_and_shorthand_punning :: proc(t: ^testing.
 
 	upon_compiling_template(s, "/app/page.html", relpath = "page.html")
 
-	then_emits_writer_call(s, "__temple_prop_0 := this.title")
-	then_emits_writer_call(s, "__temple_prop_1 := len(this.items)")
-	then_emits_writer_call(s, `__temple_prop_2 := "dark"`)
+	then_emits_writer_call(s, "__runa_prop_0 := this.title")
+	then_emits_writer_call(s, "__runa_prop_1 := len(this.items)")
+	then_emits_writer_call(s, `__runa_prop_2 := "dark"`)
 	then_emits_writer_call(
 		s,
-		"this := struct { title: type_of(__temple_prop_0), count: type_of(__temple_prop_1), theme: type_of(__temple_prop_2) }{ title = __temple_prop_0, count = __temple_prop_1, theme = __temple_prop_2 }",
+		"this := struct { title: type_of(__runa_prop_0), count: type_of(__runa_prop_1), theme: type_of(__runa_prop_2) }{ title = __runa_prop_0, count = __runa_prop_1, theme = __runa_prop_2 }",
 	)
 }
 
@@ -238,59 +238,59 @@ spec_ast_pipe_filters_and_fmt_expressions :: proc(t: ^testing.T) {
 	cases := []Pipe_Case{
 		{
 			template      = `{{ this.body | raw }}`,
-			expected_call = `__temple_io.write_string(__temple_w, this.body) or_return`,
+			expected_call = `__runa_io.write_string(__runa_w, this.body) or_return`,
 		},
 		{
 			template      = `{{ this.headline | magic }}`,
-			expected_call = `__temple_write_magic_string(__temple_w, this.headline) or_return`,
+			expected_call = `__runa_write_magic_string(__runa_w, this.headline) or_return`,
 		},
 		{
 			template      = `{{ this.items | len }}`,
-			expected_call = `__temple_write_int(__temple_w, len(this.items)) or_return`,
+			expected_call = `__runa_write_int(__runa_w, len(this.items)) or_return`,
 		},
 		{
 			template      = `{{ this.price | fmt("$%.2f") }}`,
-			expected_call = `__temple_write_f64_prec(__temple_w, f64(this.price), 2) or_return`,
+			expected_call = `__runa_write_f64_prec(__runa_w, f64(this.price), 2) or_return`,
 		},
 		{
 			template      = `{{ this.price | fmt("$%6.2f") }}`,
-			expected_call = `__temple_write_fmt_escaped(__temple_w, "$%6.2f", this.price) or_return`,
+			expected_call = `__runa_write_fmt_escaped(__runa_w, "$%6.2f", this.price) or_return`,
 		},
 		{
 			template      = `{{ fmt("%s (%i)", this.name, this.count) }}`,
-			expected_call = `__temple_write_fmt_escaped(__temple_w, "%s (%i)", this.name, this.count) or_return`,
+			expected_call = `__runa_write_fmt_escaped(__runa_w, "%s (%i)", this.name, this.count) or_return`,
 		},
 		{
 			template      = `{{ this.nickname | default("Anonymous") }}`,
-			expected_call = `__temple_write_escaped_string(__temple_w, __temple_default(this.nickname, "Anonymous")) or_return`,
+			expected_call = `__runa_write_escaped_string(__runa_w, __runa_default(this.nickname, "Anonymous")) or_return`,
 		},
 		{
 			template      = `{{ (this.flags | 0x01) | int }}`,
-			expected_call = `__temple_write_int(__temple_w, int((this.flags | 0x01))) or_return`,
+			expected_call = `__runa_write_int(__runa_w, int((this.flags | 0x01))) or_return`,
 		},
 		{
 			template      = `{{ (this.a | this.b) | fmt("%x") }}`,
-			expected_call = `__temple_write_fmt_escaped(__temple_w, "%x", (this.a | this.b)) or_return`,
+			expected_call = `__runa_write_fmt_escaped(__runa_w, "%x", (this.a | this.b)) or_return`,
 		},
 		{
 			template      = `{{ raw(default(this.name, "Guest")) }}`,
-			expected_call = `__temple_io.write_string(__temple_w, __temple_default(this.name, "Guest")) or_return`,
+			expected_call = `__runa_io.write_string(__runa_w, __runa_default(this.name, "Guest")) or_return`,
 		},
 		{
 			template      = `{{ raw(fmt("<b>%v</b>", this.name)) }}`,
-			expected_call = `__temple_write_fmt_raw(__temple_w, "<b>%v</b>", this.name) or_return`,
+			expected_call = `__runa_write_fmt_raw(__runa_w, "<b>%v</b>", this.name) or_return`,
 		},
 		{
 			template      = `{{ raw(fmt("<b>%s</b>", this.name)) }}`,
-			expected_call = `__temple_io.write_string(__temple_w, this.name) or_return`,
+			expected_call = `__runa_io.write_string(__runa_w, this.name) or_return`,
 		},
 		{
 			template      = `{{ len(this.items) | fmt("items=%i") }}`,
-			expected_call = `__temple_write_int(__temple_w, int(len(this.items))) or_return`,
+			expected_call = `__runa_write_int(__runa_w, int(len(this.items))) or_return`,
 		},
 		{
 			template      = `{{ this.name | fmt("<%s>") }}`,
-			expected_call = `__temple_io.write_string(__temple_w, "&lt;") or_return`,
+			expected_call = `__runa_io.write_string(__runa_w, "&lt;") or_return`,
 		},
 	}
 
@@ -397,35 +397,35 @@ spec_valid_pipe_chains_and_trailing_comma_tolerance :: proc(t: ^testing.T) {
 	cases := []Valid_Case{
 		{
 			template      = `{{ this.price | fmt("<b>$%.2f</b>") | raw }}`,
-			expected_call = `__temple_write_f64_prec(__temple_w, f64(this.price), 2) or_return`,
+			expected_call = `__runa_write_f64_prec(__runa_w, f64(this.price), 2) or_return`,
 		},
 		{
 			template      = `{{ this.price | fmt("<b>$%v</b>") | raw }}`,
-			expected_call = `__temple_write_fmt_raw(__temple_w, "<b>$%v</b>", this.price) or_return`,
+			expected_call = `__runa_write_fmt_raw(__runa_w, "<b>$%v</b>", this.price) or_return`,
 		},
 		{
 			template      = `{{ this.bio | default("<i>None</i>") | raw }}`,
-			expected_call = `__temple_io.write_string(__temple_w, __temple_default(this.bio, "<i>None</i>")) or_return`,
+			expected_call = `__runa_io.write_string(__runa_w, __runa_default(this.bio, "<i>None</i>")) or_return`,
 		},
 		{
 			template      = `{{ this.name | default("Guest",) }}`,
-			expected_call = `__temple_write_escaped_string(__temple_w, __temple_default(this.name, "Guest")) or_return`,
+			expected_call = `__runa_write_escaped_string(__runa_w, __runa_default(this.name, "Guest")) or_return`,
 		},
 		{
 			template      = `{{ default(this.name, "Guest",) }}`,
-			expected_call = `__temple_write_escaped_string(__temple_w, __temple_default(this.name, "Guest")) or_return`,
+			expected_call = `__runa_write_escaped_string(__runa_w, __runa_default(this.name, "Guest")) or_return`,
 		},
 		{
 			template      = `{{ this.price | fmt("$%.2f",) }}`,
-			expected_call = `__temple_write_f64_prec(__temple_w, f64(this.price), 2) or_return`,
+			expected_call = `__runa_write_f64_prec(__runa_w, f64(this.price), 2) or_return`,
 		},
 		{
 			template      = `{{ this.price | fmt("$%v",) }}`,
-			expected_call = `__temple_write_fmt_escaped(__temple_w, "$%v", this.price) or_return`,
+			expected_call = `__runa_write_fmt_escaped(__runa_w, "$%v", this.price) or_return`,
 		},
 		{
 			template      = `{{ fmt("%s: %i", this.name, this.count,) }}`,
-			expected_call = `__temple_write_fmt_escaped(__temple_w, "%s: %i", this.name, this.count) or_return`,
+			expected_call = `__runa_write_fmt_escaped(__runa_w, "%s: %i", this.name, this.count) or_return`,
 		},
 	}
 
@@ -472,19 +472,19 @@ spec_macro_definition_and_call_with_typed_and_default_params :: proc(t: ^testing
 
 	then_emits_writer_call(
 		s,
-		`__temple_macro_badge :: proc(__temple_w: __temple_io.Writer, label: string, active := false) -> (__temple_n: int, __temple_err: __temple_io.Error) {`,
+		`__runa_macro_badge :: proc(__runa_w: __runa_io.Writer, label: string, active := false) -> (__runa_n: int, __runa_err: __runa_io.Error) {`,
 	)
 	then_emits_writer_call(
 		s,
-		`__temple_macro_divider :: proc(__temple_w: __temple_io.Writer) -> (__temple_n: int, __temple_err: __temple_io.Error) {`,
+		`__runa_macro_divider :: proc(__runa_w: __runa_io.Writer) -> (__runa_n: int, __runa_err: __runa_io.Error) {`,
 	)
 	then_emits_writer_call(
 		s,
-		`__temple_n += __temple_macro_badge(__temple_w, this.title, true) or_return`,
+		`__runa_n += __runa_macro_badge(__runa_w, this.title, true) or_return`,
 	)
 	then_emits_writer_call(
 		s,
-		`__temple_n += __temple_macro_divider(__temple_w) or_return`,
+		`__runa_n += __runa_macro_divider(__runa_w) or_return`,
 	)
 	// badge approx_bytes = 13 (`<span class="`) + 3 (max of `"on"` vs `"off"`) + 2 (`">`) + 10 (`{{ label }}`) + 7 (`</span>`) = 35
 	// divider approx_bytes = 4 (`<hr>`)
@@ -554,8 +554,8 @@ spec_multiline_embed_props_with_inline_comments :: proc(t: ^testing.T) {
 
 	upon_compiling_template(s, "/app/page.html", relpath = "page.html")
 
-	then_emits_writer_call(s, "__temple_prop_0 := this.title")
-	then_emits_writer_call(s, "__temple_prop_1 := true")
+	then_emits_writer_call(s, "__runa_prop_0 := this.title")
+	then_emits_writer_call(s, "__runa_prop_1 := true")
 }
 
 @(test)
@@ -583,13 +583,13 @@ spec_macros_across_layout_inheritance_with_relative_embeds_and_child_overrides :
 
 	upon_compiling_template(s, "/app/views/page.html", relpath = "views/page.html")
 
-	then_emits_writer_call(s, `__temple_macro_pill :: proc(__temple_w: __temple_io.Writer, tag: string)`)
-	then_emits_writer_call(s, `__temple_macro_badge :: proc(__temple_w: __temple_io.Writer, label: string)`)
+	then_emits_writer_call(s, `__runa_macro_pill :: proc(__runa_w: __runa_io.Writer, tag: string)`)
+	then_emits_writer_call(s, `__runa_macro_badge :: proc(__runa_w: __runa_io.Writer, label: string)`)
 	then_emits_writer_call(s, `"<i>*</i>"`)
 	then_emits_writer_call(s, `"<em>"`)
-	then_emits_writer_call(s, `__temple_n += __temple_macro_badge(__temple_w, "Status") or_return`)
-	then_emits_writer_call(s, `__temple_n += __temple_macro_chip(__temple_w, "Override") or_return`)
-	then_emits_writer_call(s, `__temple_n += __temple_macro_pill(__temple_w, "Child") or_return`)
+	then_emits_writer_call(s, `__runa_n += __runa_macro_badge(__runa_w, "Status") or_return`)
+	then_emits_writer_call(s, `__runa_n += __runa_macro_chip(__runa_w, "Override") or_return`)
+	then_emits_writer_call(s, `__runa_n += __runa_macro_pill(__runa_w, "Child") or_return`)
 }
 
 @(test)
@@ -758,65 +758,65 @@ spec_rejects_invalid_macro_and_call_declarations :: proc(t: ^testing.T) {
 spec_decoupled_codegen_qualifies_runtime_symbols_in_external_package :: proc(t: ^testing.T) {
 	template_src := `{{ this.title | default("Untitled") }}{{ this.headline | magic }}{{ this.price | fmt("$%.2f") }}{{ this.price | fmt("$%6.2f") }}{{ this.badge | fmt("<b>%v</b>") | raw }}{{ this.link | url }}{{ this.query | url_param }}{{ this.payload | js }}`
 
-	// 1. Default `package temple` mode emits unqualified runtime calls and `Compiled(T)`
+	// 1. Default `package runa` mode emits unqualified runtime calls and `Compiled(T)`
 	{
 		s := scenario_begin(t)
 		defer scenario_end(s)
 
 		upon_compiling_inline(s, template_src)
 
-		then_generated_file_contains(s, "package temple\n")
+		then_generated_file_contains(s, "package runa\n")
 		then_generated_file_contains(s, "compiled :: proc \"contextless\" ($path: string, $T: typeid) -> Compiled(T) {")
-		then_emits_writer_call(s, `__temple_write_escaped_string(__temple_w, __temple_default(this.title, "Untitled")) or_return`)
-		then_emits_writer_call(s, `__temple_write_magic_string(__temple_w, this.headline) or_return`)
-		then_emits_writer_call(s, `__temple_write_f64_prec(__temple_w, f64(this.price), 2) or_return`)
-		then_emits_writer_call(s, `__temple_write_fmt_escaped(__temple_w, "$%6.2f", this.price) or_return`)
-		then_emits_writer_call(s, `__temple_write_fmt_raw(__temple_w, "<b>%v</b>", this.badge) or_return`)
-		then_emits_writer_call(s, `__temple_write_safe_url(__temple_w, this.link) or_return`)
-		then_emits_writer_call(s, `__temple_write_url_param(__temple_w, this.query) or_return`)
-		then_emits_writer_call(s, `__temple_write_js_string(__temple_w, this.payload) or_return`)
+		then_emits_writer_call(s, `__runa_write_escaped_string(__runa_w, __runa_default(this.title, "Untitled")) or_return`)
+		then_emits_writer_call(s, `__runa_write_magic_string(__runa_w, this.headline) or_return`)
+		then_emits_writer_call(s, `__runa_write_f64_prec(__runa_w, f64(this.price), 2) or_return`)
+		then_emits_writer_call(s, `__runa_write_fmt_escaped(__runa_w, "$%6.2f", this.price) or_return`)
+		then_emits_writer_call(s, `__runa_write_fmt_raw(__runa_w, "<b>%v</b>", this.badge) or_return`)
+		then_emits_writer_call(s, `__runa_write_safe_url(__runa_w, this.link) or_return`)
+		then_emits_writer_call(s, `__runa_write_url_param(__runa_w, this.query) or_return`)
+		then_emits_writer_call(s, `__runa_write_js_string(__runa_w, this.payload) or_return`)
 	}
 
-	// 2. External `package views` mode emits `import __temple` and qualifies `Compiled(T)` and all runtime helpers
+	// 2. External `package views` mode emits `import __runa` and qualifies `Compiled(T)` and all runtime helpers
 	{
 		s := scenario_begin(t)
 		defer scenario_end(s)
 
-		given_target_package(s, "views", "shared:temple")
+		given_target_package(s, "views", "shared:runa")
 		upon_compiling_inline(s, template_src)
 
 		then_generated_file_contains(s, "package views\n")
-		then_generated_file_contains(s, `import __temple "shared:temple"`)
-		then_generated_file_contains(s, "__temple_default :: __temple.__temple_default")
-		then_generated_file_contains(s, "compiled :: proc \"contextless\" ($path: string, $T: typeid) -> __temple.Compiled(T) {")
-		then_emits_writer_call(s, `__temple.__temple_write_escaped_string(__temple_w, __temple_default(this.title, "Untitled")) or_return`)
-		then_emits_writer_call(s, `__temple.__temple_write_magic_string(__temple_w, this.headline) or_return`)
-		then_emits_writer_call(s, `__temple.__temple_write_f64_prec(__temple_w, f64(this.price), 2) or_return`)
-		then_emits_writer_call(s, `__temple.__temple_write_fmt_escaped(__temple_w, "$%6.2f", this.price) or_return`)
-		then_emits_writer_call(s, `__temple.__temple_write_fmt_raw(__temple_w, "<b>%v</b>", this.badge) or_return`)
-		then_emits_writer_call(s, `__temple.__temple_write_safe_url(__temple_w, this.link) or_return`)
-		then_emits_writer_call(s, `__temple.__temple_write_url_param(__temple_w, this.query) or_return`)
-		then_emits_writer_call(s, `__temple.__temple_write_js_string(__temple_w, this.payload) or_return`)
+		then_generated_file_contains(s, `import __runa "shared:runa"`)
+		then_generated_file_contains(s, "__runa_default :: __runa.__runa_default")
+		then_generated_file_contains(s, "compiled :: proc \"contextless\" ($path: string, $T: typeid) -> __runa.Compiled(T) {")
+		then_emits_writer_call(s, `__runa.__runa_write_escaped_string(__runa_w, __runa_default(this.title, "Untitled")) or_return`)
+		then_emits_writer_call(s, `__runa.__runa_write_magic_string(__runa_w, this.headline) or_return`)
+		then_emits_writer_call(s, `__runa.__runa_write_f64_prec(__runa_w, f64(this.price), 2) or_return`)
+		then_emits_writer_call(s, `__runa.__runa_write_fmt_escaped(__runa_w, "$%6.2f", this.price) or_return`)
+		then_emits_writer_call(s, `__runa.__runa_write_fmt_raw(__runa_w, "<b>%v</b>", this.badge) or_return`)
+		then_emits_writer_call(s, `__runa.__runa_write_safe_url(__runa_w, this.link) or_return`)
+		then_emits_writer_call(s, `__runa.__runa_write_url_param(__runa_w, this.query) or_return`)
+		then_emits_writer_call(s, `__runa.__runa_write_js_string(__runa_w, this.payload) or_return`)
 	}
 
-	// 3. String literal containing `"__temple_default("` is never corrupted in external package mode
+	// 3. String literal containing `"__runa_default("` is never corrupted in external package mode
 	{
 		s := scenario_begin(t)
 		defer scenario_end(s)
 
-		given_target_package(s, "views", "shared:temple")
-		upon_compiling_inline(s, `{{ this.label | default("call __temple_default(x, y)") }}`)
+		given_target_package(s, "views", "shared:runa")
+		upon_compiling_inline(s, `{{ this.label | default("call __runa_default(x, y)") }}`)
 
 		then_emits_writer_call(
 			s,
-			`__temple.__temple_write_escaped_string(__temple_w, __temple_default(this.label, "call __temple_default(x, y)")) or_return`,
+			`__runa.__runa_write_escaped_string(__runa_w, __runa_default(this.label, "call __runa_default(x, y)")) or_return`,
 		)
 	}
 }
 
 @(test)
 spec_same_package_and_aliased_compile_call_discovery_without_false_positives :: proc(t: ^testing.T) {
-	// 1. Unqualified same-package `compiled` / `compiled_inline` and local aliases without importing `temple`
+	// 1. Unqualified same-package `compiled` / `compiled_inline` and local aliases without importing `runa`
 	{
 		s := scenario_begin(t)
 		defer scenario_end(s)
@@ -838,18 +838,18 @@ badge_view := local_inline("<span>{{ this.title }}</span>", Page_Ctx)
 		})
 	}
 
-	// 2. Imported external views package (`import v "../views"`) alongside `import "shared:temple"`
+	// 2. Imported external views package (`import v "../views"`) alongside `import "shared:runa"`
 	{
 		s := scenario_begin(t)
 		defer scenario_end(s)
 
 		upon_scanning_odin_source(s, `package app
-import "shared:temple"
+import "shared:runa"
 import v "../views"
 
 Ctx :: struct { name: string }
 
-a := temple.compiled("a.html", Ctx)
+a := runa.compiled("a.html", Ctx)
 b := v.compiled("b.html", Ctx)
 c := v.compiled_inline("<p>{{ this.name }}</p>", Ctx)
 `)
@@ -888,7 +888,7 @@ main :: proc() {
 		defer scenario_end(s)
 
 		upon_scanning_odin_source(s, `package app
-import "shared:temple"
+import "shared:runa"
 import shader "../gfx/shader"
 import regex "../util/regex"
 
@@ -897,7 +897,7 @@ Ctx :: struct { name: string }
 compile_assets :: proc(runtime_src: string, flags: u32) {
 	_ = shader.compiled(runtime_src, flags)
 	_ = regex.compiled(runtime_src)
-	_ = temple.compiled("valid_page.html", Ctx)
+	_ = runa.compiled("valid_page.html", Ctx)
 }
 `)
 
@@ -917,78 +917,78 @@ spec_context_aware_escaping_for_urls_query_params_and_js :: proc(t: ^testing.T) 
 		// Safe URL (`url(...)` and `| url`)
 		{
 			template      = `{{ url(this.link) }}`,
-			expected_call = `__temple_write_safe_url(__temple_w, this.link) or_return`,
+			expected_call = `__runa_write_safe_url(__runa_w, this.link) or_return`,
 		},
 		{
 			template      = `{{ this.link | url }}`,
-			expected_call = `__temple_write_safe_url(__temple_w, this.link) or_return`,
+			expected_call = `__runa_write_safe_url(__runa_w, this.link) or_return`,
 		},
 		{
 			template      = `{{ url(get_link(this.items[0])) }}`,
-			expected_call = `__temple_write_safe_url(__temple_w, get_link(this.items[0])) or_return`,
+			expected_call = `__runa_write_safe_url(__runa_w, get_link(this.items[0])) or_return`,
 		},
 		{
 			template      = `{{ url(this.link,) }}`,
-			expected_call = `__temple_write_safe_url(__temple_w, this.link) or_return`,
+			expected_call = `__runa_write_safe_url(__runa_w, this.link) or_return`,
 		},
 		// URL query parameter (`url_param(...)` and `| url_param`)
 		{
 			template      = `{{ url_param(this.q) }}`,
-			expected_call = `__temple_write_url_param(__temple_w, this.q) or_return`,
+			expected_call = `__runa_write_url_param(__runa_w, this.q) or_return`,
 		},
 		{
 			template      = `{{ this.q | url_param }}`,
-			expected_call = `__temple_write_url_param(__temple_w, this.q) or_return`,
+			expected_call = `__runa_write_url_param(__runa_w, this.q) or_return`,
 		},
 		{
 			template      = `{{ url_param(this.q,) }}`,
-			expected_call = `__temple_write_url_param(__temple_w, this.q) or_return`,
+			expected_call = `__runa_write_url_param(__runa_w, this.q) or_return`,
 		},
 		// JavaScript / JSON string escaping (`js(...)`, `| js`, `json(...)`, `| json`)
 		{
 			template      = `{{ js(this.payload) }}`,
-			expected_call = `__temple_write_js_string(__temple_w, this.payload) or_return`,
+			expected_call = `__runa_write_js_string(__runa_w, this.payload) or_return`,
 		},
 		{
 			template      = `{{ this.payload | js }}`,
-			expected_call = `__temple_write_js_string(__temple_w, this.payload) or_return`,
+			expected_call = `__runa_write_js_string(__runa_w, this.payload) or_return`,
 		},
 		{
 			template      = `{{ json(this.payload) }}`,
-			expected_call = `__temple_write_js_string(__temple_w, this.payload) or_return`,
+			expected_call = `__runa_write_js_string(__runa_w, this.payload) or_return`,
 		},
 		{
 			template      = `{{ this.payload | json }}`,
-			expected_call = `__temple_write_js_string(__temple_w, this.payload) or_return`,
+			expected_call = `__runa_write_js_string(__runa_w, this.payload) or_return`,
 		},
 		{
 			template      = `{{ js(this.payload,) }}`,
-			expected_call = `__temple_write_js_string(__temple_w, this.payload) or_return`,
+			expected_call = `__runa_write_js_string(__runa_w, this.payload) or_return`,
 		},
 		// Composition with `default(...)`
 		{
 			template      = `{{ this.link | default("/home") | url }}`,
-			expected_call = `__temple_write_safe_url(__temple_w, __temple_default(this.link, "/home")) or_return`,
+			expected_call = `__runa_write_safe_url(__runa_w, __runa_default(this.link, "/home")) or_return`,
 		},
 		{
 			template      = `{{ url(default(this.link, "/home")) }}`,
-			expected_call = `__temple_write_safe_url(__temple_w, __temple_default(this.link, "/home")) or_return`,
+			expected_call = `__runa_write_safe_url(__runa_w, __runa_default(this.link, "/home")) or_return`,
 		},
 		{
 			template      = `{{ this.q | default("all") | url_param }}`,
-			expected_call = `__temple_write_url_param(__temple_w, __temple_default(this.q, "all")) or_return`,
+			expected_call = `__runa_write_url_param(__runa_w, __runa_default(this.q, "all")) or_return`,
 		},
 		{
 			template      = `{{ url_param(default(this.q, "all")) }}`,
-			expected_call = `__temple_write_url_param(__temple_w, __temple_default(this.q, "all")) or_return`,
+			expected_call = `__runa_write_url_param(__runa_w, __runa_default(this.q, "all")) or_return`,
 		},
 		{
 			template      = `{{ this.payload | default("none") | js }}`,
-			expected_call = `__temple_write_js_string(__temple_w, __temple_default(this.payload, "none")) or_return`,
+			expected_call = `__runa_write_js_string(__runa_w, __runa_default(this.payload, "none")) or_return`,
 		},
 		{
 			template      = `{{ js(default(this.payload, "none")) }}`,
-			expected_call = `__temple_write_js_string(__temple_w, __temple_default(this.payload, "none")) or_return`,
+			expected_call = `__runa_write_js_string(__runa_w, __runa_default(this.payload, "none")) or_return`,
 		},
 	}
 
@@ -1107,31 +1107,31 @@ spec_warn_unused_identifies_orphan_templates_and_excludes_layouts_and_embeds :: 
 
 	given_template(
 		s,
-		"/app/views/home.temple.twig",
-		`{% extends "../layouts/base.temple.twig" %}{% block body %}{% embed "../partials/card.temple.twig" %}{% end %}`,
+		"/app/views/home.runa.twig",
+		`{% extends "../layouts/base.runa.twig" %}{% block body %}{% embed "../partials/card.runa.twig" %}{% end %}`,
 	)
 	given_template(
 		s,
-		"/app/layouts/base.temple.twig",
-		`<html>{% block body %}{% end %}{% embed "../partials/footer.temple.html" %}</html>`,
+		"/app/layouts/base.runa.twig",
+		`<html>{% block body %}{% end %}{% embed "../partials/footer.runa.html" %}</html>`,
 	)
-	given_template(s, "/app/partials/card.temple.twig", `<div>Card</div>`)
-	given_template(s, "/app/partials/footer.temple.html", `<footer>Foot</footer>`)
-	given_template(s, "/app/views/orphan_page.temple.twig", `<p>Never compiled</p>`)
+	given_template(s, "/app/partials/card.runa.twig", `<div>Card</div>`)
+	given_template(s, "/app/partials/footer.runa.html", `<footer>Foot</footer>`)
+	given_template(s, "/app/views/orphan_page.runa.twig", `<p>Never compiled</p>`)
 	given_template(s, "/app/partials/unused_widget.temple.html", `<span>Never embedded</span>`)
 	given_template(s, "/app/public/static_landing.html", `<h1>Static non-template HTML</h1>`)
 
-	upon_compiling_template(s, "/app/views/home.temple.twig", relpath = "views/home.temple.twig")
+	upon_compiling_template(s, "/app/views/home.runa.twig", relpath = "views/home.runa.twig")
 
 	then_used_templates_are(s, {
-		"/app/layouts/base.temple.twig",
-		"/app/partials/card.temple.twig",
-		"/app/partials/footer.temple.html",
-		"/app/views/home.temple.twig",
+		"/app/layouts/base.runa.twig",
+		"/app/partials/card.runa.twig",
+		"/app/partials/footer.runa.html",
+		"/app/views/home.runa.twig",
 	})
 	then_unused_templates_are(s, {
 		"/app/partials/unused_widget.temple.html",
-		"/app/views/orphan_page.temple.twig",
+		"/app/views/orphan_page.runa.twig",
 	})
 }
 
@@ -1151,7 +1151,7 @@ spec_check_mode_verifies_up_to_date_and_rejects_stale_or_missing_generated_file 
 		s := scenario_begin(t)
 		defer scenario_end(s)
 
-		given_existing_generated_file(s, "/* This file was generated by temple on 2026-01-01 - DO NOT EDIT! */\n\npackage temple\n// stale\n")
+		given_existing_generated_file(s, "/* This file was generated by runa on 2026-01-01 - DO NOT EDIT! */\n\npackage runa\n// stale\n")
 		upon_compiling_inline(s, `<h1>{{ this.title }}</h1>`)
 		then_check_mode_matches_existing_file(s, false)
 	}
@@ -1163,7 +1163,7 @@ spec_check_mode_verifies_up_to_date_and_rejects_stale_or_missing_generated_file 
 
 		upon_compiling_inline(s, `<h1>{{ this.title }}</h1>`)
 		with_timestamp := strings.concatenate({
-			"/* This file was generated by temple on 2026-10-31 12:00:00 - DO NOT EDIT! */\r\n\r\n",
+			"/* This file was generated by runa on 2026-10-31 12:00:00 - DO NOT EDIT! */\r\n\r\n",
 			s.generated_file,
 		}, s.alloc)
 		crlf_existing, _ := strings.replace_all(with_timestamp, "\n", "\r\n", s.alloc)
@@ -1198,15 +1198,15 @@ spec_cross_platform_backslash_paths_normalize_in_codegen_embeds_and_diagnostics 
 		})
 	}
 
-	// 2. Backslashes in `temple.compiled` call sites normalize to `/` during call collection
+	// 2. Backslashes in `runa.compiled` call sites normalize to `/` during call collection
 	{
 		s := scenario_begin(t)
 		defer scenario_end(s)
 
 		upon_scanning_odin_source(s, `package sample
-import "temple"
+import "runa"
 
-view := temple.compiled("views\\dashboard\\index.temple.twig", int)
+view := runa.compiled("views\\dashboard\\index.temple.twig", int)
 `)
 
 		then_collected_templates_are(s, {"views/dashboard/index.temple.twig"})

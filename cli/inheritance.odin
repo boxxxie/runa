@@ -1,4 +1,4 @@
-package temple_cli
+package runa_cli
 
 import "core:odin/tokenizer"
 import "core:os"

@@ -10,8 +10,8 @@ import "core:os"
 import "core:strings"
 
 import hugi "hugi:."
-import temple ".."
-import temple_cli "../cli"
+import runa ".."
+import runa_cli "../cli"
 
 Host_State :: enum {
 	Healthy,
@@ -35,8 +35,8 @@ Dashboard_Ctx :: struct {
 	rows:       []Host_Row,
 }
 
-dashboard_tmpl := compiled("templates/dashboard.temple.html", Dashboard_Ctx)
-section_layout_tmpl := compiled("templates/section_layout.temple.html", Dashboard_Ctx)
+dashboard_tmpl := compiled("templates/dashboard.runa.html", Dashboard_Ctx)
+section_layout_tmpl := compiled("templates/section_layout.runa.html", Dashboard_Ctx)
 
 inline_card_tmpl := compiled_inline(
 	`<article class="card"><h2>{{ this.host | default("unknown") }}</h2><span>{{ this.latency_ms | fmt("%.2f ms") }}</span></article>`,
@@ -54,7 +54,7 @@ inline_fmt_simple_tmpl := compiled_inline(
 )
 
 inline_embed_badge_tmpl := compiled_inline(
-	`{%- embed "templates/badge_component.temple.html"(label = this.host, status_class = "ok") -%}`,
+	`{%- embed "templates/badge_component.runa.html"(label = this.host, status_class = "ok") -%}`,
 	Host_Row,
 )
 
@@ -71,7 +71,7 @@ inline_default_chain_tmpl := compiled_inline(
 )
 
 @(private = "file")
-CLEAN_SHORT :: "Welcome to Temple: zero-overhead compile-time HTML templates for Odin!"
+CLEAN_SHORT :: "Welcome to Runa: zero-overhead compile-time HTML templates for Odin!"
 @(private = "file")
 XSS_CHUNK :: `<script attr="val" & 'single'>alert("xss" & '1');</script><span>Hello &amp; World</span>`
 @(private = "file")
@@ -115,13 +115,13 @@ Bench_Ctx :: struct {
 	section_path:           string,
 	badge_path:             string,
 	odin_path:              string,
-	cached_parent_templ:    temple_cli.Template,
-	cached_section_templ:   temple_cli.Template,
-	cached_badge_templ:     temple_cli.Template,
-	cached_resolved_dash:   temple_cli.Template,
-	cached_trace_err_templ: temple_cli.Template,
-	snap_prev:              temple_cli.Workspace_Snapshot,
-	snap_curr:              temple_cli.Workspace_Snapshot,
+	cached_parent_templ:    runa_cli.Template,
+	cached_section_templ:   runa_cli.Template,
+	cached_badge_templ:     runa_cli.Template,
+	cached_resolved_dash:   runa_cli.Template,
+	cached_trace_err_templ: runa_cli.Template,
+	snap_prev:              runa_cli.Workspace_Snapshot,
+	snap_curr:              runa_cli.Workspace_Snapshot,
 }
 
 @(private = "file")
@@ -137,7 +137,7 @@ bench_escape_string :: proc(b: ^hugi.Bencher) {
 	hugi.expect_zero_allocs(b)
 	for hugi.step(b) {
 		strings.builder_reset(sc.ctx.render_sb)
-		n, _ := temple.__temple_write_escaped_string(sc.ctx.render_w, sc.text)
+		n, _ := runa.__runa_write_escaped_string(sc.ctx.render_w, sc.text)
 		_ = hugi.black_box(n)
 	}
 }
@@ -149,7 +149,7 @@ bench_safe_url :: proc(b: ^hugi.Bencher) {
 	hugi.expect_zero_allocs(b)
 	for hugi.step(b) {
 		strings.builder_reset(sc.ctx.render_sb)
-		n, _ := temple.__temple_write_safe_url(sc.ctx.render_w, sc.text)
+		n, _ := runa.__runa_write_safe_url(sc.ctx.render_w, sc.text)
 		_ = hugi.black_box(n)
 	}
 }
@@ -161,7 +161,7 @@ bench_url_param :: proc(b: ^hugi.Bencher) {
 	hugi.expect_zero_allocs(b)
 	for hugi.step(b) {
 		strings.builder_reset(sc.ctx.render_sb)
-		n, _ := temple.__temple_write_url_param(sc.ctx.render_w, sc.text)
+		n, _ := runa.__runa_write_url_param(sc.ctx.render_w, sc.text)
 		_ = hugi.black_box(n)
 	}
 }
@@ -173,7 +173,7 @@ bench_js_string :: proc(b: ^hugi.Bencher) {
 	hugi.expect_zero_allocs(b)
 	for hugi.step(b) {
 		strings.builder_reset(sc.ctx.render_sb)
-		n, _ := temple.__temple_write_js_string(sc.ctx.render_w, sc.text)
+		n, _ := runa.__runa_write_js_string(sc.ctx.render_w, sc.text)
 		_ = hugi.black_box(n)
 	}
 }
@@ -185,7 +185,7 @@ bench_magic_string :: proc(b: ^hugi.Bencher) {
 	hugi.expect_zero_allocs(b)
 	for hugi.step(b) {
 		strings.builder_reset(sc.ctx.render_sb)
-		n, _ := temple.__temple_write_magic_string(sc.ctx.render_w, sc.text)
+		n, _ := runa.__runa_write_magic_string(sc.ctx.render_w, sc.text)
 		_ = hugi.black_box(n)
 	}
 }
@@ -198,9 +198,9 @@ bench_direct_type_casts :: proc(b: ^hugi.Bencher) {
 	for hugi.step(b) {
 		strings.builder_reset(ctx.render_sb)
 		w1, _ := io.write_string(ctx.render_w, "Order: $")
-		w2, _ := temple.__temple_write_f64_prec(ctx.render_w, 149.95, 2)
+		w2, _ := runa.__runa_write_f64_prec(ctx.render_w, 149.95, 2)
 		w3, _ := io.write_string(ctx.render_w, " (")
-		w4, _ := temple.__temple_write_int(ctx.render_w, 12)
+		w4, _ := runa.__runa_write_int(ctx.render_w, 12)
 		w5, _ := io.write_string(ctx.render_w, " items)")
 		last_n = w1 + w2 + w3 + w4 + w5
 		_ = hugi.black_box(last_n)
@@ -216,9 +216,9 @@ bench_direct_large_numbers :: proc(b: ^hugi.Bencher) {
 	for hugi.step(b) {
 		strings.builder_reset(ctx.render_sb)
 		w1, _ := io.write_string(ctx.render_w, "ts=")
-		w2, _ := temple.__temple_write_int(ctx.render_w, 1_730_476_800)
+		w2, _ := runa.__runa_write_int(ctx.render_w, 1_730_476_800)
 		w3, _ := io.write_string(ctx.render_w, " delta=")
-		w4, _ := temple.__temple_write_f64_prec(ctx.render_w, -98765.4321, 4)
+		w4, _ := runa.__runa_write_f64_prec(ctx.render_w, -98765.4321, 4)
 		last_n = w1 + w2 + w3 + w4
 		_ = hugi.black_box(last_n)
 	}
@@ -260,7 +260,7 @@ bench_fmt_streaming :: proc(b: ^hugi.Bencher) {
 	hugi.expect_zero_allocs(b)
 	for hugi.step(b) {
 		strings.builder_reset(ctx.render_sb)
-		n, _ := temple.__temple_write_fmt_escaped(
+		n, _ := runa.__runa_write_fmt_escaped(
 			ctx.render_w,
 			"%s: $%.2f (%i items)",
 			"Order <A&B>",
@@ -280,7 +280,7 @@ bench_fmt_raw :: proc(b: ^hugi.Bencher) {
 	hugi.expect_zero_allocs(b)
 	for hugi.step(b) {
 		strings.builder_reset(ctx.render_sb)
-		n, _ := temple.__temple_write_fmt_raw(
+		n, _ := runa.__runa_write_fmt_raw(
 			ctx.render_w,
 			"%s: $%.2f (%i items)",
 			"Order <A&B>",
@@ -300,7 +300,7 @@ bench_fmt_tprintf :: proc(b: ^hugi.Bencher) {
 	for hugi.step(b) {
 		strings.builder_reset(ctx.render_sb)
 		formatted := fmt.tprintf("%s: $%.2f (%i items)", "Order <A&B>", 149.95, 12)
-		n, _ := temple.__temple_write_escaped_string(ctx.render_w, formatted)
+		n, _ := runa.__runa_write_escaped_string(ctx.render_w, formatted)
 		free_all(context.temp_allocator)
 		last_n = n
 		_ = hugi.black_box(n)
@@ -453,10 +453,10 @@ bench_cli_stage1_collect :: proc(b: ^hugi.Bencher) {
 		file.fullpath = ctx.odin_path
 		_ = odin_parser.parse_file(&p, file)
 
-		calls := make([dynamic]temple_cli.Compile_Call, context.temp_allocator)
+		calls := make([dynamic]runa_cli.Compile_Call, context.temp_allocator)
 		seen := make(map[string]string, context.temp_allocator)
 		files := [1]^ast.File{file}
-		temple_cli.collect_calls_from_parsed_files(
+		runa_cli.collect_calls_from_parsed_files(
 			"benchmarks",
 			files[:],
 			&calls,
@@ -476,11 +476,11 @@ bench_cli_lexer :: proc(b: ^hugi.Bencher) {
 	hugi.set_bytes(b, u64(len(ctx.template_bytes)))
 	hugi.expect_zero_allocs(b)
 	for hugi.step(b) {
-		l: temple_cli.Lexer
-		temple_cli.lexer_init(&l, ctx.template_bytes)
+		l: runa_cli.Lexer
+		runa_cli.lexer_init(&l, ctx.template_bytes)
 		count := 0
 		for {
-			tok := temple_cli.lexer_next(&l)
+			tok := runa_cli.lexer_next(&l)
 			count += 1
 			if tok.type == .EOF || tok.type == .Illegal {
 				break
@@ -495,9 +495,9 @@ bench_cli_parser :: proc(b: ^hugi.Bencher) {
 	ctx := (^Bench_Ctx)(b.user_ptr)
 	hugi.set_bytes(b, u64(len(ctx.template_bytes)))
 	for hugi.step(b) {
-		p: temple_cli.Parser
-		temple_cli.parser_init(&p, ctx.template_bytes, context.temp_allocator)
-		t := temple_cli.parse(&p)
+		p: runa_cli.Parser
+		runa_cli.parser_init(&p, ctx.template_bytes, context.temp_allocator)
+		t := runa_cli.parse(&p)
 		_ = hugi.black_box(len(t.content))
 		free_all(context.temp_allocator)
 	}
@@ -508,9 +508,9 @@ bench_cli_parse_complex_ast :: proc(b: ^hugi.Bencher) {
 	ctx := (^Bench_Ctx)(b.user_ptr)
 	hugi.set_bytes(b, u64(len(ctx.complex_ast_bytes)))
 	for hugi.step(b) {
-		p: temple_cli.Parser
-		temple_cli.parser_init(&p, ctx.complex_ast_bytes, context.temp_allocator)
-		t := temple_cli.parse(&p)
+		p: runa_cli.Parser
+		runa_cli.parser_init(&p, ctx.complex_ast_bytes, context.temp_allocator)
+		t := runa_cli.parse(&p)
 		_ = hugi.black_box(len(t.content))
 		free_all(context.temp_allocator)
 	}
@@ -521,19 +521,19 @@ bench_cli_inheritance_resolve :: proc(b: ^hugi.Bencher) {
 	ctx := (^Bench_Ctx)(b.user_ptr)
 	hugi.set_bytes(b, u64(len(ctx.template_bytes) + len(ctx.layout_bytes)))
 	for hugi.step(b) {
-		p_child: temple_cli.Parser
-		temple_cli.parser_init(&p_child, ctx.template_bytes, context.temp_allocator)
-		child_t := temple_cli.parse(&p_child)
+		p_child: runa_cli.Parser
+		runa_cli.parser_init(&p_child, ctx.template_bytes, context.temp_allocator)
+		child_t := runa_cli.parse(&p_child)
 
-		cctx: temple_cli.Compile_Context
+		cctx: runa_cli.Compile_Context
 		cctx.allocator = context.temp_allocator
-		temple_cli.cache_raw_template(
+		runa_cli.cache_raw_template(
 			&cctx,
 			ctx.layout_path,
-			temple_cli.Cached_Template{source = ctx.layout_bytes, template = ctx.cached_parent_templ},
+			runa_cli.Cached_Template{source = ctx.layout_bytes, template = ctx.cached_parent_templ},
 		)
 
-		resolved, _ := temple_cli.resolve_template_inheritance(
+		resolved, _ := runa_cli.resolve_template_inheritance(
 			&cctx,
 			child_t,
 			ctx.template_bytes,
@@ -549,24 +549,24 @@ bench_cli_3level_inheritance :: proc(b: ^hugi.Bencher) {
 	ctx := (^Bench_Ctx)(b.user_ptr)
 	hugi.set_bytes(b, u64(len(ctx.leaf_3level_bytes) + len(ctx.section_bytes) + len(ctx.layout_bytes)))
 	for hugi.step(b) {
-		p_leaf: temple_cli.Parser
-		temple_cli.parser_init(&p_leaf, ctx.leaf_3level_bytes, context.temp_allocator)
-		leaf_t := temple_cli.parse(&p_leaf)
+		p_leaf: runa_cli.Parser
+		runa_cli.parser_init(&p_leaf, ctx.leaf_3level_bytes, context.temp_allocator)
+		leaf_t := runa_cli.parse(&p_leaf)
 
-		cctx: temple_cli.Compile_Context
+		cctx: runa_cli.Compile_Context
 		cctx.allocator = context.temp_allocator
-		temple_cli.cache_raw_template(
+		runa_cli.cache_raw_template(
 			&cctx,
 			ctx.layout_path,
-			temple_cli.Cached_Template{source = ctx.layout_bytes, template = ctx.cached_parent_templ},
+			runa_cli.Cached_Template{source = ctx.layout_bytes, template = ctx.cached_parent_templ},
 		)
-		temple_cli.cache_raw_template(
+		runa_cli.cache_raw_template(
 			&cctx,
 			ctx.section_path,
-			temple_cli.Cached_Template{source = ctx.section_bytes, template = ctx.cached_section_templ},
+			runa_cli.Cached_Template{source = ctx.section_bytes, template = ctx.cached_section_templ},
 		)
 
-		resolved, _ := temple_cli.resolve_template_inheritance(
+		resolved, _ := runa_cli.resolve_template_inheritance(
 			&cctx,
 			leaf_t,
 			ctx.leaf_3level_bytes,
@@ -582,30 +582,30 @@ bench_cli_embed_props_transpile :: proc(b: ^hugi.Bencher) {
 	ctx := (^Bench_Ctx)(b.user_ptr)
 	hugi.set_bytes(b, u64(len(ctx.embed_host_bytes) + len(ctx.badge_bytes)))
 	for hugi.step(b) {
-		p_host: temple_cli.Parser
-		temple_cli.parser_init(&p_host, ctx.embed_host_bytes, context.temp_allocator)
-		host_t := temple_cli.parse(&p_host)
+		p_host: runa_cli.Parser
+		runa_cli.parser_init(&p_host, ctx.embed_host_bytes, context.temp_allocator)
+		host_t := runa_cli.parse(&p_host)
 
-		cctx: temple_cli.Compile_Context
+		cctx: runa_cli.Compile_Context
 		cctx.allocator = context.temp_allocator
-		temple_cli.cache_raw_template(
+		runa_cli.cache_raw_template(
 			&cctx,
 			ctx.badge_path,
-			temple_cli.Cached_Template{source = ctx.badge_bytes, template = ctx.cached_badge_templ},
+			runa_cli.Cached_Template{source = ctx.badge_bytes, template = ctx.cached_badge_templ},
 		)
 
-		embed_state := temple_cli.Embed_Callback_State{
+		embed_state := runa_cli.Embed_Callback_State{
 			ctx          = &cctx,
 			current_file = ctx.dash_path,
 			current_src  = ctx.embed_host_bytes,
 		}
 
 		strings.builder_reset(ctx.render_sb)
-		temple_cli.transpile(
+		runa_cli.transpile(
 			ctx.render_w,
-			"embed_host.temple.html",
+			"embed_host.runa.html",
 			host_t,
-			temple_cli.embed_parser_with_ctx,
+			runa_cli.embed_parser_with_ctx,
 			&embed_state,
 			context.temp_allocator,
 			true,
@@ -620,9 +620,9 @@ bench_cli_diagnostic_error_path :: proc(b: ^hugi.Bencher) {
 	ctx := (^Bench_Ctx)(b.user_ptr)
 	hugi.set_bytes(b, u64(len(ctx.invalid_tmpl_bytes)))
 	for hugi.step(b) {
-		p: temple_cli.Parser
-		temple_cli.parser_init(&p, ctx.invalid_tmpl_bytes, context.temp_allocator)
-		t := temple_cli.parse(&p)
+		p: runa_cli.Parser
+		runa_cli.parser_init(&p, ctx.invalid_tmpl_bytes, context.temp_allocator)
+		t := runa_cli.parse(&p)
 		err_len := 0
 		if err, has_err := t.err.?; has_err {
 			err_len = len(err.msg)
@@ -640,29 +640,29 @@ bench_cli_multiframe_diagnostic :: proc(b: ^hugi.Bencher) {
 		u64(len(ctx.trace_err_leaf_bytes) + len(ctx.section_bytes) + len(ctx.layout_bytes)),
 	)
 	for hugi.step(b) {
-		cctx: temple_cli.Compile_Context
+		cctx: runa_cli.Compile_Context
 		cctx.allocator = context.temp_allocator
 		cctx.diagnostics.allocator = context.temp_allocator
-		temple_cli.cache_raw_template(
+		runa_cli.cache_raw_template(
 			&cctx,
 			ctx.layout_path,
-			temple_cli.Cached_Template{source = ctx.layout_bytes, template = ctx.cached_parent_templ},
+			runa_cli.Cached_Template{source = ctx.layout_bytes, template = ctx.cached_parent_templ},
 		)
-		temple_cli.cache_raw_template(
+		runa_cli.cache_raw_template(
 			&cctx,
 			ctx.section_path,
-			temple_cli.Cached_Template{source = ctx.section_bytes, template = ctx.cached_section_templ},
+			runa_cli.Cached_Template{source = ctx.section_bytes, template = ctx.cached_section_templ},
 		)
-		temple_cli.cache_raw_template(
+		runa_cli.cache_raw_template(
 			&cctx,
 			ctx.dash_path,
-			temple_cli.Cached_Template{source = ctx.trace_err_leaf_bytes, template = ctx.cached_trace_err_templ},
+			runa_cli.Cached_Template{source = ctx.trace_err_leaf_bytes, template = ctx.cached_trace_err_templ},
 		)
 
-		call := temple_cli.Compile_Call{
-			identifier = "templates/trace_err.temple.html",
-			type = temple_cli.Call_Path{
-				relpath  = "templates/trace_err.temple.html",
+		call := runa_cli.Compile_Call{
+			identifier = "templates/trace_err.runa.html",
+			type = runa_cli.Call_Path{
+				relpath  = "templates/trace_err.runa.html",
 				fullpath = ctx.dash_path,
 			},
 			pos = tokenizer.Pos{
@@ -672,7 +672,7 @@ bench_cli_multiframe_diagnostic :: proc(b: ^hugi.Bencher) {
 			},
 		}
 
-		_, _ = temple_cli.compile_single_call(&cctx, call)
+		_, _ = runa_cli.compile_single_call(&cctx, call)
 		trace_len := len(cctx.diagnostics[0].trace) if len(cctx.diagnostics) > 0 else 0
 		_ = hugi.black_box(trace_len)
 		free_all(context.temp_allocator)
@@ -686,9 +686,9 @@ bench_cli_pure_transpile_loc_on :: proc(b: ^hugi.Bencher) {
 	hugi.expect_zero_allocs(b)
 	for hugi.step(b) {
 		strings.builder_reset(ctx.render_sb)
-		temple_cli.transpile(
+		runa_cli.transpile(
 			ctx.render_w,
-			"dashboard.temple.html",
+			"dashboard.runa.html",
 			ctx.cached_resolved_dash,
 			nil,
 			nil,
@@ -709,9 +709,9 @@ bench_cli_pure_transpile_loc_off :: proc(b: ^hugi.Bencher) {
 	hugi.expect_zero_allocs(b)
 	for hugi.step(b) {
 		strings.builder_reset(ctx.render_sb)
-		temple_cli.transpile(
+		runa_cli.transpile(
 			ctx.render_w,
-			"dashboard.temple.html",
+			"dashboard.runa.html",
 			ctx.cached_resolved_dash,
 			nil,
 			nil,
@@ -730,28 +730,28 @@ bench_cli_transpile :: proc(b: ^hugi.Bencher) {
 	ctx := (^Bench_Ctx)(b.user_ptr)
 	hugi.set_bytes(b, u64(len(ctx.template_bytes) + len(ctx.layout_bytes)))
 	for hugi.step(b) {
-		p_child: temple_cli.Parser
-		temple_cli.parser_init(&p_child, ctx.template_bytes, context.temp_allocator)
-		child_t := temple_cli.parse(&p_child)
+		p_child: runa_cli.Parser
+		runa_cli.parser_init(&p_child, ctx.template_bytes, context.temp_allocator)
+		child_t := runa_cli.parse(&p_child)
 
-		cctx: temple_cli.Compile_Context
+		cctx: runa_cli.Compile_Context
 		cctx.allocator = context.temp_allocator
-		temple_cli.cache_raw_template(
+		runa_cli.cache_raw_template(
 			&cctx,
 			ctx.layout_path,
-			temple_cli.Cached_Template{source = ctx.layout_bytes, template = ctx.cached_parent_templ},
+			runa_cli.Cached_Template{source = ctx.layout_bytes, template = ctx.cached_parent_templ},
 		)
 
-		resolved, _ := temple_cli.resolve_template_inheritance(
+		resolved, _ := runa_cli.resolve_template_inheritance(
 			&cctx,
 			child_t,
 			ctx.template_bytes,
 			ctx.dash_path,
 		)
 		strings.builder_reset(ctx.render_sb)
-		temple_cli.transpile(
+		runa_cli.transpile(
 			ctx.render_w,
-			"dashboard.temple.html",
+			"dashboard.runa.html",
 			resolved,
 			nil,
 			nil,
@@ -776,28 +776,28 @@ bench_cli_batch_compile_3 :: proc(b: ^hugi.Bencher) {
 		),
 	)
 	for hugi.step(b) {
-		cctx: temple_cli.Compile_Context
+		cctx: runa_cli.Compile_Context
 		cctx.allocator = context.temp_allocator
-		temple_cli.cache_raw_template(
+		runa_cli.cache_raw_template(
 			&cctx,
 			ctx.layout_path,
-			temple_cli.Cached_Template{source = ctx.layout_bytes, template = ctx.cached_parent_templ},
+			runa_cli.Cached_Template{source = ctx.layout_bytes, template = ctx.cached_parent_templ},
 		)
-		temple_cli.cache_raw_template(
+		runa_cli.cache_raw_template(
 			&cctx,
 			ctx.section_path,
-			temple_cli.Cached_Template{source = ctx.section_bytes, template = ctx.cached_section_templ},
+			runa_cli.Cached_Template{source = ctx.section_bytes, template = ctx.cached_section_templ},
 		)
 
 		strings.builder_reset(ctx.render_sb)
 
-		p1: temple_cli.Parser
-		temple_cli.parser_init(&p1, ctx.template_bytes, context.temp_allocator)
-		t1 := temple_cli.parse(&p1)
-		r1, _ := temple_cli.resolve_template_inheritance(&cctx, t1, ctx.template_bytes, ctx.dash_path)
-		temple_cli.transpile(
+		p1: runa_cli.Parser
+		runa_cli.parser_init(&p1, ctx.template_bytes, context.temp_allocator)
+		t1 := runa_cli.parse(&p1)
+		r1, _ := runa_cli.resolve_template_inheritance(&cctx, t1, ctx.template_bytes, ctx.dash_path)
+		runa_cli.transpile(
 			ctx.render_w,
-			"templates/dashboard.temple.html",
+			"templates/dashboard.runa.html",
 			r1,
 			nil,
 			nil,
@@ -805,15 +805,15 @@ bench_cli_batch_compile_3 :: proc(b: ^hugi.Bencher) {
 			true,
 		)
 
-		r2, _ := temple_cli.resolve_template_inheritance(
+		r2, _ := runa_cli.resolve_template_inheritance(
 			&cctx,
 			ctx.cached_section_templ,
 			ctx.section_bytes,
 			ctx.section_path,
 		)
-		temple_cli.transpile(
+		runa_cli.transpile(
 			ctx.render_w,
-			"templates/section_layout.temple.html",
+			"templates/section_layout.runa.html",
 			r2,
 			nil,
 			nil,
@@ -821,18 +821,18 @@ bench_cli_batch_compile_3 :: proc(b: ^hugi.Bencher) {
 			true,
 		)
 
-		p3: temple_cli.Parser
-		temple_cli.parser_init(&p3, ctx.leaf_3level_bytes, context.temp_allocator)
-		t3 := temple_cli.parse(&p3)
-		r3, _ := temple_cli.resolve_template_inheritance(
+		p3: runa_cli.Parser
+		runa_cli.parser_init(&p3, ctx.leaf_3level_bytes, context.temp_allocator)
+		t3 := runa_cli.parse(&p3)
+		r3, _ := runa_cli.resolve_template_inheritance(
 			&cctx,
 			t3,
 			ctx.leaf_3level_bytes,
 			ctx.dash_path,
 		)
-		temple_cli.transpile(
+		runa_cli.transpile(
 			ctx.render_w,
-			"templates/leaf.temple.html",
+			"templates/leaf.runa.html",
 			r3,
 			nil,
 			nil,
@@ -851,9 +851,9 @@ bench_cli_watch_snapshot_diff :: proc(b: ^hugi.Bencher) {
 	hugi.set_items(b, 32)
 	hugi.expect_zero_allocs(b)
 	for hugi.step(b) {
-		changed := temple_cli.has_workspace_snapshot_changed(ctx.snap_prev, ctx.snap_curr)
-		is_gen := temple_cli.is_generated_temple_source(
-			"/* This file was generated by temple on 2026 - DO NOT EDIT! */\npackage benchmarks\n",
+		changed := runa_cli.has_workspace_snapshot_changed(ctx.snap_prev, ctx.snap_curr)
+		is_gen := runa_cli.is_generated_runa_source(
+			"/* This file was generated by runa on 2026 - DO NOT EDIT! */\npackage benchmarks\n",
 		)
 		_ = hugi.black_box((1 if !changed else 0) + (1 if is_gen else 0))
 	}
@@ -919,16 +919,16 @@ main :: proc() {
 		},
 	}
 
-	dash_path := "benchmarks/templates/dashboard.temple.html"
-	layout_path := "benchmarks/templates/layout.temple.html"
-	section_path := "benchmarks/templates/section_layout.temple.html"
-	badge_path := "benchmarks/templates/badge_component.temple.html"
+	dash_path := "benchmarks/templates/dashboard.runa.html"
+	layout_path := "benchmarks/templates/layout.runa.html"
+	section_path := "benchmarks/templates/section_layout.runa.html"
+	badge_path := "benchmarks/templates/badge_component.runa.html"
 	odin_path := "benchmarks/main.odin"
 	if !os.exists(dash_path) {
-		dash_path = "templates/dashboard.temple.html"
-		layout_path = "templates/layout.temple.html"
-		section_path = "templates/section_layout.temple.html"
-		badge_path = "templates/badge_component.temple.html"
+		dash_path = "templates/dashboard.runa.html"
+		layout_path = "templates/layout.runa.html"
+		section_path = "templates/section_layout.runa.html"
+		badge_path = "templates/badge_component.runa.html"
 		odin_path = "main.odin"
 	}
 
@@ -951,11 +951,11 @@ main :: proc() {
 		ctx.badge_path = badge_path
 		ctx.odin_path = odin_path
 
-		leaf_3level_src := `{% extends "section_layout.temple.html" %}{% block title %}{{ super() }} :: Node Detail{% end %}{% block content %}{{ super() }}<article>{{ this.page_title }}</article>{% end %}`
-		embed_host_src := `<div>{% embed "badge_component.temple.html"(label = this.host, status_class = "ok") %}</div>`
+		leaf_3level_src := `{% extends "section_layout.runa.html" %}{% block title %}{{ super() }} :: Node Detail{% end %}{% block content %}{{ super() }}<article>{{ this.page_title }}</article>{% end %}`
+		embed_host_src := `<div>{% embed "badge_component.runa.html"(label = this.host, status_class = "ok") %}</div>`
 		invalid_tmpl_src := `<section><h1>{{ this.page_title }}</h1>{% call unknown_macro(this.host, "ok") %}</section>`
 		complex_ast_src := `<div class="{{ "active" if this.online else "offline" }}">{{ this.tags[0:2] | default("n/a") }}{% if this.online && (this.latency_ms < 50.0 || this.reqs_per_s > 1000) %}<span>{{ fmt("%s: %.2fms (%i rps)", this.host, this.latency_ms, this.reqs_per_s) }}</span>{% end %}{% let computed = (this.reqs_per_s * 2) + 1 %}</div>`
-		trace_err_leaf_src := "{% extends \"section_layout.temple.html\" %}\n{% block content %}\n\t<div>{% embed \"missing_widget.temple.html\" %}</div>\n{% end %}\n"
+		trace_err_leaf_src := "{% extends \"section_layout.runa.html\" %}\n{% block content %}\n\t<div>{% embed \"missing_widget.runa.html\" %}</div>\n{% end %}\n"
 
 		ctx.leaf_3level_bytes = transmute([]byte)leaf_3level_src
 		ctx.embed_host_bytes = transmute([]byte)embed_host_src
@@ -963,31 +963,31 @@ main :: proc() {
 		ctx.complex_ast_bytes = transmute([]byte)complex_ast_src
 		ctx.trace_err_leaf_bytes = transmute([]byte)trace_err_leaf_src
 
-		p_parent: temple_cli.Parser
-		temple_cli.parser_init(&p_parent, layout_bytes, setup_alloc)
-		ctx.cached_parent_templ = temple_cli.parse(&p_parent)
+		p_parent: runa_cli.Parser
+		runa_cli.parser_init(&p_parent, layout_bytes, setup_alloc)
+		ctx.cached_parent_templ = runa_cli.parse(&p_parent)
 
-		p_section: temple_cli.Parser
-		temple_cli.parser_init(&p_section, section_bytes, setup_alloc)
-		ctx.cached_section_templ = temple_cli.parse(&p_section)
+		p_section: runa_cli.Parser
+		runa_cli.parser_init(&p_section, section_bytes, setup_alloc)
+		ctx.cached_section_templ = runa_cli.parse(&p_section)
 
-		p_badge: temple_cli.Parser
-		temple_cli.parser_init(&p_badge, badge_bytes, setup_alloc)
-		ctx.cached_badge_templ = temple_cli.parse(&p_badge)
+		p_badge: runa_cli.Parser
+		runa_cli.parser_init(&p_badge, badge_bytes, setup_alloc)
+		ctx.cached_badge_templ = runa_cli.parse(&p_badge)
 
-		p_err: temple_cli.Parser
-		temple_cli.parser_init(&p_err, ctx.trace_err_leaf_bytes, setup_alloc)
-		ctx.cached_trace_err_templ = temple_cli.parse(&p_err)
+		p_err: runa_cli.Parser
+		runa_cli.parser_init(&p_err, ctx.trace_err_leaf_bytes, setup_alloc)
+		ctx.cached_trace_err_templ = runa_cli.parse(&p_err)
 
-		ctx.snap_prev = make(temple_cli.Workspace_Snapshot, 32, setup_alloc)
-		ctx.snap_curr = make(temple_cli.Workspace_Snapshot, 32, setup_alloc)
+		ctx.snap_prev = make(runa_cli.Workspace_Snapshot, 32, setup_alloc)
+		ctx.snap_curr = make(runa_cli.Workspace_Snapshot, 32, setup_alloc)
 		for i in 0 ..< 32 {
 			k := fmt.aprintf(
-				"/workspace/views/component_%02d.temple.html",
+				"/workspace/views/component_%02d.runa.html",
 				i,
 				allocator = setup_alloc,
 			)
-			stamp := temple_cli.File_Stamp{
+			stamp := runa_cli.File_Stamp{
 				mtime_nsec = 1_730_000_000_000 + i64(i) * 1000,
 				size       = 1024 + i64(i) * 64,
 			}
@@ -995,17 +995,17 @@ main :: proc() {
 			ctx.snap_curr[k] = stamp
 		}
 
-		p_dash: temple_cli.Parser
-		temple_cli.parser_init(&p_dash, dash_bytes, setup_alloc)
-		dash_t := temple_cli.parse(&p_dash)
-		init_ctx: temple_cli.Compile_Context
+		p_dash: runa_cli.Parser
+		runa_cli.parser_init(&p_dash, dash_bytes, setup_alloc)
+		dash_t := runa_cli.parse(&p_dash)
+		init_ctx: runa_cli.Compile_Context
 		init_ctx.allocator = setup_alloc
-		temple_cli.cache_raw_template(
+		runa_cli.cache_raw_template(
 			&init_ctx,
 			layout_path,
-			temple_cli.Cached_Template{source = layout_bytes, template = ctx.cached_parent_templ},
+			runa_cli.Cached_Template{source = layout_bytes, template = ctx.cached_parent_templ},
 		)
-		ctx.cached_resolved_dash, _ = temple_cli.resolve_template_inheritance(
+		ctx.cached_resolved_dash, _ = runa_cli.resolve_template_inheritance(
 			&init_ctx,
 			dash_t,
 			dash_bytes,
@@ -1013,7 +1013,7 @@ main :: proc() {
 		)
 	}
 
-	suite := hugi.suite_create("temple")
+	suite := hugi.suite_create("runa")
 	defer hugi.suite_destroy(&suite)
 
 	case_esc_short := Str_Case{ctx = &ctx, text = CLEAN_SHORT}
@@ -1087,7 +1087,7 @@ main :: proc() {
 	}
 
 	if !hugi.suite_run(&suite) {
-		fmt.eprintln("temple benchmark suite failed")
+		fmt.eprintln("runa benchmark suite failed")
 		os.exit(1)
 	}
 }
