@@ -34,6 +34,9 @@ jobs:
           odin run cli -- --check --warn-unused tests .
           odin run cli -- --check --warn-unused tests/external_views --out=tests/external_views/templates_gen.odin --temple-import=../../
           odin run cli -- --check --warn-unused benchmarks --out=benchmarks/templates_gen.odin --pkg=benchmarks --temple-import=..
+          odin run cli -- --check --warn-unused tools/bench_report -out:tools/bench_report/templates_gen.odin -pkg:bench_report -temple-import:../..
 
       - name: Run end-to-end integration tests
-        run: odin test tests
+        run: |
+          odin test tests
+          odin test tools/bench_report -define:ODIN_TEST_FAIL_ON_BAD_MEMORY=true

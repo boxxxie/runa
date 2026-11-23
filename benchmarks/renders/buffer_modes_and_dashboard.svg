@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 360" width="980" height="360" role="img" aria-label="Buffer Sizing Modes (Card &amp; 50-Row Dashboard)">
+<style>
+  .bg { fill: #0d1117; }
+  .panel { fill: #161b22; stroke: #30363d; stroke-width: 1; }
+  .grid { stroke: #21262d; stroke-width: 1; }
+  .title { fill: #f0f6fc; font: 700 16px -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; }
+  .sub { fill: #8b949e; font: 400 12px -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; }
+  .lbl { fill: #c9d1d9; font: 500 11.5px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  .tick { fill: #8b949e; font: 500 10.5px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  .val { fill: #e6edf3; font: 600 11px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+</style>
+<rect class="bg" width="980" height="360" rx="10"/>
+<rect class="panel" x="250" y="68" width="420" height="250" rx="4"/>
+<text class="title" x="24" y="30">Buffer Sizing Modes (Card &amp; 50-Row Dashboard)</text>
+<text class="sub" x="24" y="49">Commit cf3eb57fb117 · -o:speed -microarch:native</text>
+<line class="grid" x1="250.0" y1="68" x2="250.0" y2="318"/>
+<text class="tick" x="250.0" y="336" text-anchor="middle">10 ns</text>
+<line class="grid" x1="355.0" y1="68" x2="355.0" y2="318"/>
+<text class="tick" x="355.0" y="336" text-anchor="middle">100 ns</text>
+<line class="grid" x1="460.0" y1="68" x2="460.0" y2="318"/>
+<text class="tick" x="460.0" y="336" text-anchor="middle">1 µs</text>
+<line class="grid" x1="565.0" y1="68" x2="565.0" y2="318"/>
+<text class="tick" x="565.0" y="336" text-anchor="middle">10 µs</text>
+<line class="grid" x1="670.0" y1="68" x2="670.0" y2="318"/>
+<text class="tick" x="670.0" y="336" text-anchor="middle">100 µs</text>
+<text class="lbl" x="240" y="94.0" text-anchor="end">card (reused buf)</text>
+<rect x="250" y="81.0" width="74.3" height="20" rx="4" fill="#3fb950"/>
+<text class="val" x="332.3" y="95.0">51.05 ns (1,643.8 MB/s, 0 allocs)</text>
+<text class="lbl" x="240" y="128.0" text-anchor="end">card (approx_bytes)</text>
+<rect x="250" y="115.0" width="93.0" height="20" rx="4" fill="#58a6ff"/>
+<text class="val" x="351.0" y="129.0">76.81 ns (1,092.6 MB/s, 1 (109 B) allocs)</text>
+<text class="lbl" x="240" y="162.0" text-anchor="end">card (unbuffered)</text>
+<rect x="250" y="149.0" width="105.1" height="20" rx="4" fill="#ffa657"/>
+<text class="val" x="363.1" y="163.0">100.33 ns (836.5 MB/s, 3 (176 B) allocs)</text>
+<text class="lbl" x="240" y="196.0" text-anchor="end">dashboard 50-row (reused)</text>
+<rect x="250" y="183.0" width="317.2" height="20" rx="4" fill="#3fb950"/>
+<text class="val" x="575.2" y="197.0">10.50 µs (1,387.2 MB/s, 0 allocs)</text>
+<text class="lbl" x="240" y="230.0" text-anchor="end">dashboard 50-row (approx)</text>
+<rect x="250" y="217.0" width="320.4" height="20" rx="4" fill="#58a6ff"/>
+<text class="val" x="578.4" y="231.0">11.27 µs (1,293.0 MB/s, 1 (15.6 KB) allocs)</text>
+<text class="lbl" x="240" y="264.0" text-anchor="end">dashboard 50-row (16KB)</text>
+<rect x="250" y="251.0" width="320.7" height="20" rx="4" fill="#d2a8ff"/>
+<text class="val" x="578.7" y="265.0">11.33 µs (1,286.1 MB/s, 1 (16.0 KB) allocs)</text>
+<text class="lbl" x="240" y="298.0" text-anchor="end">dashboard 50-row (unbuf)</text>
+<rect x="250" y="285.0" width="320.7" height="20" rx="4" fill="#ffa657"/>
+<text class="val" x="578.7" y="299.0">11.33 µs (1,285.6 MB/s, 8 (18.3 KB) allocs)</text>
+</svg>

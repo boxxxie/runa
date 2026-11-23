@@ -34,7 +34,23 @@ odin run tools/bench_report
 * **Calibrated Timing & Untimed Allocation Checks (`hugi` / `obench`):** Hot loops execute in calibrated timed batches without allocation-counter overhead (`untimed_alloc_check = true` + vDSO `clock_gettime` on 64-bit Linux), followed by an untimed `Counting_Allocator` pass that enforces `@zero_alloc` invariants and reports exact heap/temp allocations per operation.
 * **Compressed Transactional History (`benchmarks/history.hugidb`):** Runs are serialized as `HPKT` packets and ingested into an `xitdb` transactional history store with Byte-Stream-Split + zlib compression; regressions are checked via Mann-Whitney U and Welch `t`.
 * **Isolated Buffer Modes:** Runtime benchmarks test both a pre-allocated 128 KB `strings.Builder` (measuring pure template execution and verifying `0 allocs/op`) and per-render buffer allocations using `Compiled.approx_bytes` vs unbuffered dynamic growth.
-* **AOT Markdown Report Renderer (`tools/bench_report`):** Exports `benchmarks/history.hugidb` via `hugi export --format json` and renders both the grouped suite tables below and the headline summary in [`../README.md`](../README.md) using AOT-compiled `temple` templates (`suite_report.temple.twig` and `headline_table.temple.twig`).
+* **AOT Report & SVG Renderer (`tools/bench_report`):** Exports `benchmarks/history.hugidb` via `hugi export --format json` and renders SVG charts (`renders/*.svg`), grouped suite tables (`suite_report.temple.twig`), and the headline summary in [`../README.md`](../README.md) (`headline_table.temple.twig`) using AOT-compiled `temple` templates.
+
+---
+
+## Visual Renders (`-o:speed`)
+
+### 1. Runtime Escaping, Formatting & Components
+
+![Runtime Escaping, Formatting and Components](renders/runtime_and_escaping.svg)
+
+### 2. Buffer Sizing Modes (`approx_bytes` vs Reused vs Unbuffered)
+
+![Buffer Sizing Modes](renders/buffer_modes_and_dashboard.svg)
+
+### 3. AOT Compiler CLI Pipeline Stages
+
+![AOT Compiler CLI Pipeline Stages](renders/compiler_cli_pipeline.svg)
 
 ---
 

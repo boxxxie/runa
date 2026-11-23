@@ -10,6 +10,7 @@ import "core:strings"
 
 DEFAULT_HUGI_BIN :: "/home/pauli/.local/bin/hugi"
 DEFAULT_DB_PATH :: "benchmarks/history.hugidb"
+DEFAULT_RENDERS_DIR :: "benchmarks/renders"
 DEFAULT_SUITE_README :: "benchmarks/README.md"
 DEFAULT_ROOT_README :: "README.md"
 
@@ -145,6 +146,45 @@ HEADLINE_SPECS :: [10]Headline_Spec {
 
 suite_report_tmpl := compiled("templates/suite_report.temple.twig", Suite_Report_View)
 headline_table_tmpl := compiled("templates/headline_table.temple.twig", Headline_Table_View)
+bar_chart_tmpl := compiled("templates/bar_chart.temple.twig", Bar_Chart_View)
+
+Svg_Tick_View :: struct {
+	pos:   string,
+	label: string,
+}
+
+Bar_View :: struct {
+	label:    string,
+	text_y:   string,
+	rect_y:   string,
+	width:    string,
+	val_x:    string,
+	val_y:    string,
+	val_text: string,
+	color:    string,
+}
+
+Bar_Chart_View :: struct {
+	title:       string,
+	subtitle:    string,
+	width:       int,
+	height:      int,
+	pad_l:       int,
+	pad_t:       int,
+	pw:          int,
+	ph:          int,
+	plot_bottom: int,
+	label_x:     int,
+	x_label_y:   int,
+	x_ticks:     []Svg_Tick_View,
+	bars:        []Bar_View,
+}
+
+Bar_Spec :: struct {
+	full_name: string,
+	label:     string,
+	color:     string,
+}
 
 @(require_results)
 sanitize_markdown_cell :: proc(s: string, allocator := context.allocator) -> string {
@@ -733,6 +773,11 @@ main :: proc() {
 	headline_view := build_headline_table_view(records, arena_alloc)
 	free_all(context.temp_allocator)
 
+	if !render_temple_svgs(records, suite_view.commit, arena_alloc) {
+		fmt.eprintln("bench_report: failed rendering SVG charts")
+		os.exit(1)
+	}
+
 	suite_md, suite_render_ok := render_suite_report(suite_view, context.allocator)
 	if !suite_render_ok {
 		fmt.eprintln("bench_report: failed to render suite_report.temple.twig")
@@ -766,7 +811,7 @@ main :: proc() {
 	}
 
 	fmt.printf(
-		"bench_report: rendered %d benchmarks (%d groups, commit %s) -> %s (%s), %s (%s)\n",
+		"bench_report: rendered %d benchmarks (%d groups, commit %s) + 3 SVGs -> %s (%s), %s (%s)\n",
 		suite_view.total_benchmarks,
 		len(suite_view.groups),
 		suite_view.commit,
@@ -775,4 +820,172 @@ main :: proc() {
 		DEFAULT_ROOT_README,
 		"updated" if root_changed else "unchanged",
 	)
+}
+
+@(require_results)
+fmt_axis_ns :: proc(ns: f64, allocator := context.allocator) -> string {
+	raw := format_duration_ns(ns, context.temp_allocator)
+	if s, ok := strings.replace_all(raw, ".00 ", " ", context.temp_allocator); ok {
+		raw = s
+	}
+	return strings.clone(raw, allocator)
+}
+
+@(require_results)
+render_bar_svg_from_specs :: proc(
+	title: string,
+	subtitle: string,
+	specs: []Bar_Spec,
+	by_full: map[string]Hugi_Record,
+	out_path: string,
+	allocator := context.allocator,
+) -> bool {
+	width := 980
+	pad_l := 250
+	pad_r := 310
+	pad_t := 68
+	pad_b := 42
+	row_h := 34
+
+	matched := make([dynamic]struct{ spec: Bar_Spec, rec: Hugi_Record }, 0, len(specs), allocator)
+	min_v := max(f64)
+	max_v := 0.0
+	for sp in specs {
+		if rec, ok := by_full[sp.full_name]; ok && rec.p50_ns > 0 {
+			append(&matched, struct{ spec: Bar_Spec, rec: Hugi_Record }{sp, rec})
+			min_v = min(min_v, rec.p50_ns)
+			max_v = max(max_v, rec.p50_ns)
+		}
+	}
+	if len(matched) == 0 || max_v <= 0 {
+		return false
+	}
+
+	ph := len(matched) * row_h + 12
+	height := pad_t + ph + pad_b
+	pw := width - pad_l - pad_r
+	lo := int(math.floor(math.log10(min_v)))
+	hi := int(math.ceil(math.log10(max_v)))
+	if lo == hi {
+		hi += 1
+	}
+
+	x_ticks := make([]Svg_Tick_View, hi - lo + 1, allocator)
+	for e := lo; e <= hi; e += 1 {
+		t := f64(e - lo) / f64(hi - lo)
+		xp := f64(pad_l) + t * f64(pw)
+		x_ticks[e - lo] = Svg_Tick_View{
+			pos   = fmt.aprintf("%.1f", xp, allocator = allocator),
+			label = fmt_axis_ns(math.pow10(f64(e)), allocator),
+		}
+	}
+
+	bars := make([]Bar_View, len(matched), allocator)
+	for item, idx in matched {
+		ry := pad_t + 10 + idx * row_h
+		t := (math.log10(item.rec.p50_ns) - f64(lo)) / f64(hi - lo)
+		w_bar := max(4.0, t * f64(pw))
+		dur := format_duration_ns(item.rec.p50_ns, context.temp_allocator)
+		allocs_txt, _ := format_allocs_summary(item.rec, context.temp_allocator)
+		val_text := fmt.aprintf("%s (%s allocs)", dur, allocs_txt, allocator = allocator)
+		if item.rec.mb_per_sec > 0 {
+			tp := format_throughput_mbs(item.rec.mb_per_sec, context.temp_allocator)
+			val_text = fmt.aprintf("%s (%s, %s allocs)", dur, tp, allocs_txt, allocator = allocator)
+		}
+		bars[idx] = Bar_View{
+			label    = item.spec.label,
+			text_y   = fmt.aprintf("%.1f", f64(ry) + 16.0, allocator = allocator),
+			rect_y   = fmt.aprintf("%.1f", f64(ry) + 3.0, allocator = allocator),
+			width    = fmt.aprintf("%.1f", w_bar, allocator = allocator),
+			val_x    = fmt.aprintf("%.1f", f64(pad_l) + w_bar + 8.0, allocator = allocator),
+			val_y    = fmt.aprintf("%.1f", f64(ry) + 17.0, allocator = allocator),
+			val_text = val_text,
+			color    = item.spec.color,
+		}
+	}
+
+	view := Bar_Chart_View{
+		title       = title,
+		subtitle    = subtitle,
+		width       = width,
+		height      = height,
+		pad_l       = pad_l,
+		pad_t       = pad_t,
+		pw          = pw,
+		ph          = ph,
+		plot_bottom = pad_t + ph,
+		label_x     = pad_l - 10,
+		x_label_y   = pad_t + ph + 18,
+		x_ticks     = x_ticks,
+		bars        = bars,
+	}
+	sb := strings.builder_make(0, bar_chart_tmpl.approx_bytes, context.temp_allocator)
+	if _, werr := bar_chart_tmpl.with(strings.to_writer(&sb), view); werr != nil {
+		return false
+	}
+	return os.write_entire_file(out_path, transmute([]byte)strings.to_string(sb)) == nil
+}
+
+@(require_results)
+render_temple_svgs :: proc(records: []Hugi_Record, commit: string, allocator := context.allocator) -> bool {
+	if !os.exists(DEFAULT_RENDERS_DIR) {
+		if os.make_directory(DEFAULT_RENDERS_DIR) != nil {
+			return false
+		}
+	}
+	by_full := make(map[string]Hugi_Record, len(records), allocator)
+	for rec in records {
+		if len(rec.full_name) > 0 {
+			by_full[rec.full_name] = rec
+		}
+	}
+
+	rt_specs := [?]Bar_Spec{
+		{"url_and_js::safe_url_blocked_js", "safe_url (blocked js)", "#3fb950"},
+		{"url_and_js::url_param_fast_path", "url_param (fast path)", "#3fb950"},
+		{"html_escape::clean_ascii_70b", "html_escape (70B ASCII)", "#58a6ff"},
+		{"url_and_js::safe_url_https", "safe_url (valid https)", "#58a6ff"},
+		{"formatting::fmt_strength_reduced", "fmt (strength-reduced)", "#79c0ff"},
+		{"formatting::write_int_and_f64", "write_int + write_f64", "#79c0ff"},
+		{"components::macro_badge", "macro_badge", "#d2a8ff"},
+		{"components::embed_badge", "embed_badge", "#d2a8ff"},
+		{"url_and_js::js_string_escape", "js_string_escape", "#ffa657"},
+		{"url_and_js::magic_string_8word", "magic_string (8 words)", "#ffa657"},
+		{"html_escape::dense_xss_88b", "html_escape (dense XSS)", "#f78166"},
+		{"formatting::fmt_tprintf_escaped", "fmt (tprintf fallback)", "#ff7b72"},
+	}
+	buf_specs := [?]Bar_Spec{
+		{"rendering::card_reused_buf", "card (reused buf)", "#3fb950"},
+		{"rendering::card_approx_bytes", "card (approx_bytes)", "#58a6ff"},
+		{"rendering::card_unbuffered", "card (unbuffered)", "#ffa657"},
+		{"rendering::dashboard_50_reused_buf", "dashboard 50-row (reused)", "#3fb950"},
+		{"rendering::dashboard_50_approx_bytes", "dashboard 50-row (approx)", "#58a6ff"},
+		{"rendering::dashboard_50_sized_16kb", "dashboard 50-row (16KB)", "#d2a8ff"},
+		{"rendering::dashboard_50_unbuffered", "dashboard 50-row (unbuf)", "#ffa657"},
+	}
+	cli_specs := [?]Bar_Spec{
+		{"compiler_cli::watch_snapshot_diff_32", "watch_snapshot_diff_32", "#3fb950"},
+		{"compiler_cli::diagnostic_undefined_macro", "diagnostic_undefined_macro", "#58a6ff"},
+		{"compiler_cli::embed_props_transpile", "embed_props_transpile", "#58a6ff"},
+		{"compiler_cli::lexer_tokenize", "lexer_tokenize", "#79c0ff"},
+		{"compiler_cli::inheritance_resolve_3level", "inheritance_resolve_3level", "#d2a8ff"},
+		{"compiler_cli::pure_transpile_loc_off", "pure_transpile (loc off)", "#3fb950"},
+		{"compiler_cli::pure_transpile_loc_on", "pure_transpile (loc on)", "#58a6ff"},
+		{"compiler_cli::parse_expr_check", "parse_expr_check", "#ffa657"},
+		{"compiler_cli::full_parse_inherit_transpile", "full_parse_inherit_transpile", "#f78166"},
+		{"compiler_cli::batch_compile_3_warm_cache", "batch_compile_3_warm_cache", "#f78166"},
+		{"compiler_cli::stage1_ast_collect", "stage1_ast_collect", "#ff7b72"},
+	}
+
+	sub := fmt.tprintf("Commit %s · -o:speed -microarch:native", commit)
+	if !render_bar_svg_from_specs("Runtime Escaping, Formatting & Components", sub, rt_specs[:], by_full, fmt.tprintf("%s/runtime_and_escaping.svg", DEFAULT_RENDERS_DIR), allocator) {
+		return false
+	}
+	if !render_bar_svg_from_specs("Buffer Sizing Modes (Card & 50-Row Dashboard)", sub, buf_specs[:], by_full, fmt.tprintf("%s/buffer_modes_and_dashboard.svg", DEFAULT_RENDERS_DIR), allocator) {
+		return false
+	}
+	if !render_bar_svg_from_specs("AOT Compiler CLI Pipeline Stages", sub, cli_specs[:], by_full, fmt.tprintf("%s/compiler_cli_pipeline.svg", DEFAULT_RENDERS_DIR), allocator) {
+		return false
+	}
+	return true
 }
