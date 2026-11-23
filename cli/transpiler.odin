@@ -94,47 +94,53 @@ write_quoted_fast :: proc(w: io.Writer, str: string) {
 
 	qbuf: [512]byte
 	qlen := 0
-	qbuf[qlen] = '"'
-	qlen += 1
-	for i := 0; i < len(str); i += 1 {
-		c := str[i]
-		if c >= 0x80 || (c < 0x20 && c != '\n' && c != '\r' && c != '\t') {
-			io.write_quoted_string(w, str)
-			return
-		}
-		if qlen + 2 >= len(qbuf) - 1 {
-			io.write_quoted_string(w, str)
-			return
-		}
-		switch c {
-		case '"':
-			qbuf[qlen + 0] = '\\'
-			qbuf[qlen + 1] = '"'
-			qlen += 2
-		case '\\':
-			qbuf[qlen + 0] = '\\'
-			qbuf[qlen + 1] = '\\'
-			qlen += 2
-		case '\n':
-			qbuf[qlen + 0] = '\\'
-			qbuf[qlen + 1] = 'n'
-			qlen += 2
-		case '\r':
-			qbuf[qlen + 0] = '\\'
-			qbuf[qlen + 1] = 'r'
-			qlen += 2
-		case '\t':
-			qbuf[qlen + 0] = '\\'
-			qbuf[qlen + 1] = 't'
-			qlen += 2
-		case:
-			qbuf[qlen] = c
-			qlen += 1
+	flush_qbuf :: proc(w: io.Writer, buf: []byte, n: ^int) {
+		if n^ > 0 {
+			ws(w, string(buf[:n^]))
+			n^ = 0
 		}
 	}
-	qbuf[qlen] = '"'
-	qlen += 1
-	ws(w, string(qbuf[:qlen]))
+	append_qbyte :: proc(w: io.Writer, buf: []byte, n: ^int, b: byte) {
+		if n^ >= len(buf) {
+			flush_qbuf(w, buf, n)
+		}
+		buf[n^] = b
+		n^ += 1
+	}
+	hex_lower := "0123456789abcdef"
+
+	append_qbyte(w, qbuf[:], &qlen, '"')
+	for i := 0; i < len(str); i += 1 {
+		c := str[i]
+		switch c {
+		case '"':
+			append_qbyte(w, qbuf[:], &qlen, '\\')
+			append_qbyte(w, qbuf[:], &qlen, '"')
+		case '\\':
+			append_qbyte(w, qbuf[:], &qlen, '\\')
+			append_qbyte(w, qbuf[:], &qlen, '\\')
+		case '\n':
+			append_qbyte(w, qbuf[:], &qlen, '\\')
+			append_qbyte(w, qbuf[:], &qlen, 'n')
+		case '\r':
+			append_qbyte(w, qbuf[:], &qlen, '\\')
+			append_qbyte(w, qbuf[:], &qlen, 'r')
+		case '\t':
+			append_qbyte(w, qbuf[:], &qlen, '\\')
+			append_qbyte(w, qbuf[:], &qlen, 't')
+		case:
+			if c < 0x20 || c == 0x7F {
+				append_qbyte(w, qbuf[:], &qlen, '\\')
+				append_qbyte(w, qbuf[:], &qlen, 'x')
+				append_qbyte(w, qbuf[:], &qlen, hex_lower[c >> 4])
+				append_qbyte(w, qbuf[:], &qlen, hex_lower[c & 0x0F])
+			} else {
+				append_qbyte(w, qbuf[:], &qlen, c)
+			}
+		}
+	}
+	append_qbyte(w, qbuf[:], &qlen, '"')
+	flush_qbuf(w, qbuf[:], &qlen)
 }
 
 indent :: proc(t: ^Transpiler) {
