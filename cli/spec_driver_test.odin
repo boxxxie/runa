@@ -1,4 +1,4 @@
-package temple_cli
+package runa_cli
 
 import "core:fmt"
 import "core:mem"
@@ -14,7 +14,7 @@ Spec_Driver :: struct {
 	alloc:          mem.Allocator,
 	ctx:            Compile_Context,
 	pkg_name:       string,
-	temple_import:  string,
+	runa_import:    string,
 	seeded_files:   [dynamic]string,
 	disk_gen_file:  string,
 	has_disk_gen:   bool,
@@ -31,7 +31,7 @@ driver_init :: proc(t: ^testing.T) -> ^Spec_Driver {
 	mem.dynamic_arena_init(&d.arena)
 	d.alloc = mem.dynamic_arena_allocator(&d.arena)
 
-	d.pkg_name = "temple"
+	d.pkg_name = "runa"
 	d.ctx.allocator = d.alloc
 	d.ctx.used_files = make(map[string]bool, d.alloc)
 	d.ctx.diagnostics = make([dynamic]Diagnostic, d.alloc)
@@ -91,7 +91,7 @@ driver_compile_inline :: proc(d: ^Spec_Driver, inline_src, odin_file: string, li
 driver_build_generated_file :: proc(d: ^Spec_Driver) -> string {
 	sb := strings.builder_make(d.alloc)
 	w := strings.to_writer(&sb)
-	write_generated_file_header_body(w, d.pkg_name, d.temple_import)
+	write_generated_file_header_body(w, d.pkg_name, d.runa_import)
 	strings.write_string(&sb, d.transpiled)
 	write_generated_file_footer(w, true)
 	return strings.to_string(sb)

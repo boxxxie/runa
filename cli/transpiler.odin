@@ -1,4 +1,4 @@
-package temple_cli
+package runa_cli
 
 import "core:fmt"
 import "core:io"
@@ -8,10 +8,10 @@ import "core:strings"
 ws :: io.write_string
 
 // Identifiers used in the transpiled output.
-PKG_IO  :: "__temple_io"
-ARG_W   :: "__temple_w"
-RET_N   :: "__temple_n"
-RET_ERR :: "__temple_err"
+PKG_IO  :: "__runa_io"
+ARG_W   :: "__runa_w"
+RET_N   :: "__runa_n"
+RET_ERR :: "__runa_err"
 
 Transpiler :: struct {
 	allocator:    mem.Allocator,
@@ -527,7 +527,7 @@ transpile_block :: proc(t: ^Transpiler, node: ^Node_Block) {
 }
 
 transpile_macro :: proc(t: ^Transpiler, node: ^Node_Macro) {
-	ws(t.w, "__temple_macro_")
+	ws(t.w, "__runa_macro_")
 	ws(t.w, node.name)
 	if len(node.params_src) > 0 {
 		ws(t.w, " :: proc(" + ARG_W + ": " + PKG_IO + ".Writer, ")
@@ -549,7 +549,7 @@ transpile_macro :: proc(t: ^Transpiler, node: ^Node_Macro) {
 }
 
 transpile_call :: proc(t: ^Transpiler, node: ^Node_Call) {
-	ws(t.w, RET_N + " += __temple_macro_")
+	ws(t.w, RET_N + " += __runa_macro_")
 	ws(t.w, node.name)
 	if len(node.args_src) > 0 {
 		ws(t.w, "(" + ARG_W + ", ")
@@ -640,7 +640,7 @@ write_output_expr :: proc(w: io.Writer, node: ^Node_Output, v: string) {
 		ws(w, "(")
 	}
 	if len(node.default_arg) > 0 {
-		ws(w, "__temple_default(")
+		ws(w, "__runa_default(")
 		ws(w, v)
 		ws(w, ", ")
 		ws(w, node.default_arg)
@@ -659,7 +659,7 @@ transpile_output :: proc(t: ^Transpiler, node: ^Node_Output) {
 
 	switch node.write_kind {
 	case .Fmt_Escaped:
-		ws(t.w, RET_N + " += __temple.__temple_write_fmt_escaped(" + ARG_W + ", " if ext else RET_N + " += __temple_write_fmt_escaped(" + ARG_W + ", ")
+		ws(t.w, RET_N + " += __runa.__runa_write_fmt_escaped(" + ARG_W + ", " if ext else RET_N + " += __runa_write_fmt_escaped(" + ARG_W + ", ")
 		ws(t.w, node.fmt_str)
 		ws(t.w, ", ")
 		write_output_expr(t.w, node, v)
@@ -667,7 +667,7 @@ transpile_output :: proc(t: ^Transpiler, node: ^Node_Output) {
 		transpile_loc(t, node.open.pos)
 		return
 	case .Fmt_Raw:
-		ws(t.w, RET_N + " += __temple.__temple_write_fmt_raw(" + ARG_W + ", " if ext else RET_N + " += __temple_write_fmt_raw(" + ARG_W + ", ")
+		ws(t.w, RET_N + " += __runa.__runa_write_fmt_raw(" + ARG_W + ", " if ext else RET_N + " += __runa_write_fmt_raw(" + ARG_W + ", ")
 		ws(t.w, node.fmt_str)
 		ws(t.w, ", ")
 		write_output_expr(t.w, node, v)
@@ -677,19 +677,19 @@ transpile_output :: proc(t: ^Transpiler, node: ^Node_Output) {
 	case .Raw_String:
 		ws(t.w, RET_N + " += " + PKG_IO + ".write_string(" + ARG_W + ", ")
 	case .Magic_String:
-		ws(t.w, RET_N + " += __temple.__temple_write_magic_string(" + ARG_W + ", " if ext else RET_N + " += __temple_write_magic_string(" + ARG_W + ", ")
+		ws(t.w, RET_N + " += __runa.__runa_write_magic_string(" + ARG_W + ", " if ext else RET_N + " += __runa_write_magic_string(" + ARG_W + ", ")
 	case .Url_String:
-		ws(t.w, RET_N + " += __temple.__temple_write_safe_url(" + ARG_W + ", " if ext else RET_N + " += __temple_write_safe_url(" + ARG_W + ", ")
+		ws(t.w, RET_N + " += __runa.__runa_write_safe_url(" + ARG_W + ", " if ext else RET_N + " += __runa_write_safe_url(" + ARG_W + ", ")
 	case .Url_Param_String:
-		ws(t.w, RET_N + " += __temple.__temple_write_url_param(" + ARG_W + ", " if ext else RET_N + " += __temple_write_url_param(" + ARG_W + ", ")
+		ws(t.w, RET_N + " += __runa.__runa_write_url_param(" + ARG_W + ", " if ext else RET_N + " += __runa_write_url_param(" + ARG_W + ", ")
 	case .Js_String:
-		ws(t.w, RET_N + " += __temple.__temple_write_js_string(" + ARG_W + ", " if ext else RET_N + " += __temple_write_js_string(" + ARG_W + ", ")
+		ws(t.w, RET_N + " += __runa.__runa_write_js_string(" + ARG_W + ", " if ext else RET_N + " += __runa_write_js_string(" + ARG_W + ", ")
 	case .Byte:
 		ws(t.w, RET_N + " += " + PKG_IO + ".write_byte(" + ARG_W + ", ")
 	case .Rune:
 		ws(t.w, RET_N + " += " + PKG_IO + ".write_rune(" + ARG_W + ", ")
 	case .Int:
-		ws(t.w, RET_N + " += __temple.__temple_write_int(" + ARG_W + ", " if ext else RET_N + " += __temple_write_int(" + ARG_W + ", ")
+		ws(t.w, RET_N + " += __runa.__runa_write_int(" + ARG_W + ", " if ext else RET_N + " += __runa_write_int(" + ARG_W + ", ")
 	case .Uint:
 		ws(t.w, RET_N + " += " + PKG_IO + ".write_uint(" + ARG_W + ", ")
 	case .I128:
@@ -705,7 +705,7 @@ transpile_output :: proc(t: ^Transpiler, node: ^Node_Output) {
 	case .F64:
 		ws(t.w, RET_N + " += " + PKG_IO + ".write_f64(" + ARG_W + ", ")
 	case .F64_Prec:
-		ws(t.w, RET_N + " += __temple.__temple_write_f64_prec(" + ARG_W + ", " if ext else RET_N + " += __temple_write_f64_prec(" + ARG_W + ", ")
+		ws(t.w, RET_N + " += __runa.__runa_write_f64_prec(" + ARG_W + ", " if ext else RET_N + " += __runa_write_f64_prec(" + ARG_W + ", ")
 		write_output_expr(t.w, node, v)
 		ws(t.w, ", ")
 		write_fast_uint(t.w, node.float_prec)
@@ -713,7 +713,7 @@ transpile_output :: proc(t: ^Transpiler, node: ^Node_Output) {
 		transpile_loc(t, node.open.pos)
 		return
 	case .Escaped_String:
-		ws(t.w, RET_N + " += __temple.__temple_write_escaped_string(" + ARG_W + ", " if ext else RET_N + " += __temple_write_escaped_string(" + ARG_W + ", ")
+		ws(t.w, RET_N + " += __runa.__runa_write_escaped_string(" + ARG_W + ", " if ext else RET_N + " += __runa_write_escaped_string(" + ARG_W + ", ")
 	}
 
 	write_output_expr(t.w, node, v)
@@ -832,7 +832,7 @@ transpile_embed :: proc(t: ^Transpiler, node: ^Node_Embed) {
 
 	if len(node.props) > 0 {
 		for prop, i in node.props {
-			ws(t.w, "__temple_prop_")
+			ws(t.w, "__runa_prop_")
 			write_fast_uint(t.w, i)
 			ws(t.w, " := ")
 			ws(t.w, prop.val_expr)
@@ -842,7 +842,7 @@ transpile_embed :: proc(t: ^Transpiler, node: ^Node_Embed) {
 		for prop, i in node.props {
 			if i > 0 do ws(t.w, ", ")
 			ws(t.w, prop.name)
-			ws(t.w, ": type_of(__temple_prop_")
+			ws(t.w, ": type_of(__runa_prop_")
 			write_fast_uint(t.w, i)
 			write_string_closing_paren :: ")"
 			ws(t.w, write_string_closing_paren)
@@ -851,7 +851,7 @@ transpile_embed :: proc(t: ^Transpiler, node: ^Node_Embed) {
 		for prop, i in node.props {
 			if i > 0 do ws(t.w, ", ")
 			ws(t.w, prop.name)
-			ws(t.w, " = __temple_prop_")
+			ws(t.w, " = __runa_prop_")
 			write_fast_uint(t.w, i)
 		}
 		ws(t.w, " }")

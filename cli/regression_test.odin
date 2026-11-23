@@ -1,4 +1,4 @@
-package temple_cli
+package runa_cli
 
 import "core:mem"
 import "core:odin/tokenizer"
@@ -25,25 +25,25 @@ test_raw_and_magic_nested_delimiters :: proc(t: ^testing.T) {
 			src           = "{{ raw(get_html()) }}",
 			expected_kind = .Raw_String,
 			expected_expr = "get_html()",
-			expected_call = "__temple_io.write_string(__temple_w, get_html()) or_return",
+			expected_call = "__runa_io.write_string(__runa_w, get_html()) or_return",
 		},
 		{
 			src           = "{{ raw(this.items[0]) }}",
 			expected_kind = .Raw_String,
 			expected_expr = "this.items[0]",
-			expected_call = "__temple_io.write_string(__temple_w, this.items[0]) or_return",
+			expected_call = "__runa_io.write_string(__runa_w, this.items[0]) or_return",
 		},
 		{
 			src           = "{{ raw((this.a + this.b)) }}",
 			expected_kind = .Raw_String,
 			expected_expr = "(this.a + this.b)",
-			expected_call = "__temple_io.write_string(__temple_w, (this.a + this.b)) or_return",
+			expected_call = "__runa_io.write_string(__runa_w, (this.a + this.b)) or_return",
 		},
 		{
 			src           = "{{ magic(get_title()) }}",
 			expected_kind = .Magic_String,
 			expected_expr = "get_title()",
-			expected_call = "__temple_write_magic_string(__temple_w, get_title()) or_return",
+			expected_call = "__runa_write_magic_string(__runa_w, get_title()) or_return",
 		},
 	}
 
@@ -305,107 +305,107 @@ test_cli_options_parsing_and_package_inference :: proc(t: ^testing.T) {
 
 	// 1. Version flags
 	{
-		opts, _, ok := parse_cli_args({"temple_cli", "--version"}, alloc)
+		opts, _, ok := parse_cli_args({"runa_cli", "--version"}, alloc)
 		testing.expect(t, ok)
 		testing.expect(t, opts.show_version)
 
-		opts_short, _, ok_short := parse_cli_args({"temple_cli", "-v"}, alloc)
+		opts_short, _, ok_short := parse_cli_args({"runa_cli", "-v"}, alloc)
 		testing.expect(t, ok_short)
 		testing.expect(t, opts_short.show_version)
 	}
 
 	// 2. Legacy 2-argument positional mode
 	{
-		opts, err_msg, ok := parse_cli_args({"temple_cli", "app", "vendor/temple"}, alloc)
+		opts, err_msg, ok := parse_cli_args({"runa_cli", "app", "vendor/runa"}, alloc)
 		testing.expect(t, ok, err_msg)
 		testing.expect_value(t, opts.project_dir, "app")
-		testing.expect_value(t, opts.temple_dir, "vendor/temple")
-		testing.expect_value(t, opts.out_file, "vendor/temple/templates.odin")
-		testing.expect_value(t, opts.pkg_name, "temple")
-		testing.expect_value(t, opts.temple_import, "")
+		testing.expect_value(t, opts.runa_dir, "vendor/runa")
+		testing.expect_value(t, opts.out_file, "vendor/runa/templates.odin")
+		testing.expect_value(t, opts.pkg_name, "runa")
+		testing.expect_value(t, opts.runa_import, "")
 	}
 
-	// 3. Odin-style flags (`-out:`, `-pkg:`, `-temple-import:`) with default `"shared:temple"` import
+	// 3. Odin-style flags (`-out:`, `-pkg:`, `-runa-import:`) with default `"shared:runa"` import
 	{
-		opts, err_msg, ok := parse_cli_args({"temple_cli", "src", "-out:views/templates_gen.odin", "-pkg:views"}, alloc)
+		opts, err_msg, ok := parse_cli_args({"runa_cli", "src", "-out:views/templates_gen.odin", "-pkg:views"}, alloc)
 		testing.expect(t, ok, err_msg)
 		testing.expect_value(t, opts.project_dir, "src")
 		testing.expect_value(t, opts.out_file, "views/templates_gen.odin")
 		testing.expect_value(t, opts.pkg_name, "views")
-		testing.expect_value(t, opts.temple_import, "shared:temple")
+		testing.expect_value(t, opts.runa_import, "shared:runa")
 	}
 
-	// 4. GNU-style flags (`--out=`, `--pkg=`, `--temple-import=`) before positional arg,
-	// plus PowerShell-split `-out:` `<val>` / `-pkg:` `<val>` / `-temple-import:` `<val>` arguments
+	// 4. GNU-style flags (`--out=`, `--pkg=`, `--runa-import=`) before positional arg,
+	// plus PowerShell-split `-out:` `<val>` / `-pkg:` `<val>` / `-runa-import:` `<val>` arguments
 	{
 		opts, err_msg, ok := parse_cli_args(
-			{"temple_cli", "--out=ui/templates_gen.odin", "--pkg=ui", "--temple-import=../temple", "src"},
+			{"runa_cli", "--out=ui/templates_gen.odin", "--pkg=ui", "--runa-import=../runa", "src"},
 			alloc,
 		)
 		testing.expect(t, ok, err_msg)
 		testing.expect_value(t, opts.project_dir, "src")
 		testing.expect_value(t, opts.out_file, "ui/templates_gen.odin")
 		testing.expect_value(t, opts.pkg_name, "ui")
-		testing.expect_value(t, opts.temple_import, "../temple")
+		testing.expect_value(t, opts.runa_import, "../runa")
 
 		opts_pwsh, err_pwsh, ok_pwsh := parse_cli_args(
-			{"temple_cli", "benchmarks", "-out:", "benchmarks/templates_gen.odin", "-pkg:", "benchmarks", "-temple-import:", ".."},
+			{"runa_cli", "benchmarks", "-out:", "benchmarks/templates_gen.odin", "-pkg:", "benchmarks", "-runa-import:", ".."},
 			alloc,
 		)
 		testing.expect(t, ok_pwsh, err_pwsh)
 		testing.expect_value(t, opts_pwsh.project_dir, "benchmarks")
 		testing.expect_value(t, opts_pwsh.out_file, "benchmarks/templates_gen.odin")
 		testing.expect_value(t, opts_pwsh.pkg_name, "benchmarks")
-		testing.expect_value(t, opts_pwsh.temple_import, "..")
+		testing.expect_value(t, opts_pwsh.runa_import, "..")
 	}
 
-	// 5. Automatic package inference from existing `.odin` files in output directory (`tests/` -> `package temple_tests`)
+	// 5. Automatic package inference from existing `.odin` files in output directory (`tests/` -> `package runa_tests`)
 	{
-		opts, err_msg, ok := parse_cli_args({"temple_cli", "tests", "-out:tests/templates_gen.odin"}, alloc)
+		opts, err_msg, ok := parse_cli_args({"runa_cli", "tests", "-out:tests/templates_gen.odin"}, alloc)
 		testing.expect(t, ok, err_msg)
-		testing.expect_value(t, opts.pkg_name, "temple_tests")
-		testing.expect_value(t, opts.temple_import, "shared:temple")
+		testing.expect_value(t, opts.pkg_name, "runa_tests")
+		testing.expect_value(t, opts.runa_import, "shared:runa")
 	}
 
 	// 6. Automatic package inference fallback to directory basename when directory has no `.odin` files yet,
 	// including sanitizing hyphens and leading digits into valid Odin identifiers
 	{
-		opts, err_msg, ok := parse_cli_args({"temple_cli", "src", "-out:nonexistent_views_dir/templates_gen.odin"}, alloc)
+		opts, err_msg, ok := parse_cli_args({"runa_cli", "src", "-out:nonexistent_views_dir/templates_gen.odin"}, alloc)
 		testing.expect(t, ok, err_msg)
 		testing.expect_value(t, opts.pkg_name, "nonexistent_views_dir")
-		testing.expect_value(t, opts.temple_import, "shared:temple")
+		testing.expect_value(t, opts.runa_import, "shared:runa")
 
-		opts_hyphen, err_hyphen, ok_hyphen := parse_cli_args({"temple_cli", "src", "-out:my-views/templates_gen.odin"}, alloc)
+		opts_hyphen, err_hyphen, ok_hyphen := parse_cli_args({"runa_cli", "src", "-out:my-views/templates_gen.odin"}, alloc)
 		testing.expect(t, ok_hyphen, err_hyphen)
 		testing.expect_value(t, opts_hyphen.pkg_name, "my_views")
 
-		opts_digit, err_digit, ok_digit := parse_cli_args({"temple_cli", "src", "-out:2026-views/templates_gen.odin"}, alloc)
+		opts_digit, err_digit, ok_digit := parse_cli_args({"runa_cli", "src", "-out:2026-views/templates_gen.odin"}, alloc)
 		testing.expect(t, ok_digit, err_digit)
 		testing.expect_value(t, opts_digit.pkg_name, "_2026_views")
 	}
 
 	// 7. Invalid invocations (including invalid `-pkg` identifiers) must fail cleanly
 	{
-		_, _, ok_empty := parse_cli_args({"temple_cli"}, alloc)
+		_, _, ok_empty := parse_cli_args({"runa_cli"}, alloc)
 		testing.expect(t, !ok_empty)
 
-		_, _, ok_missing_out := parse_cli_args({"temple_cli", "src"}, alloc)
+		_, _, ok_missing_out := parse_cli_args({"runa_cli", "src"}, alloc)
 		testing.expect(t, !ok_missing_out)
 
-		_, _, ok_unknown_flag := parse_cli_args({"temple_cli", "src", "temple", "-bogus:123"}, alloc)
+		_, _, ok_unknown_flag := parse_cli_args({"runa_cli", "src", "runa", "-bogus:123"}, alloc)
 		testing.expect(t, !ok_unknown_flag)
 
-		_, _, ok_empty_val := parse_cli_args({"temple_cli", "src", "-out:"}, alloc)
+		_, _, ok_empty_val := parse_cli_args({"runa_cli", "src", "-out:"}, alloc)
 		testing.expect(t, !ok_empty_val)
 
-		_, err_bad_pkg_hyphen, ok_bad_pkg_hyphen := parse_cli_args({"temple_cli", "src", "-out:views/templates.odin", "-pkg:my-views"}, alloc)
+		_, err_bad_pkg_hyphen, ok_bad_pkg_hyphen := parse_cli_args({"runa_cli", "src", "-out:views/templates.odin", "-pkg:my-views"}, alloc)
 		testing.expect(t, !ok_bad_pkg_hyphen)
 		testing.expect(t, strings.contains(err_bad_pkg_hyphen, "must be a valid Odin identifier"), err_bad_pkg_hyphen)
 
-		_, _, ok_bad_pkg_digit := parse_cli_args({"temple_cli", "src", "-out:views/templates.odin", "-pkg:123views"}, alloc)
+		_, _, ok_bad_pkg_digit := parse_cli_args({"runa_cli", "src", "-out:views/templates.odin", "-pkg:123views"}, alloc)
 		testing.expect(t, !ok_bad_pkg_digit)
 
-		_, _, ok_bad_pkg_underscore := parse_cli_args({"temple_cli", "src", "-out:views/templates.odin", "-pkg:_"}, alloc)
+		_, _, ok_bad_pkg_underscore := parse_cli_args({"runa_cli", "src", "-out:views/templates.odin", "-pkg:_"}, alloc)
 		testing.expect(t, !ok_bad_pkg_underscore)
 	}
 }
@@ -421,20 +421,20 @@ test_cli_dx_flags_and_modes :: proc(t: ^testing.T) {
 
 	// 1. Parse `--check`, `--warn-unused`, and `--watch` flags
 	{
-		opts, err_msg, ok := parse_cli_args({"temple_cli", "--check", "--warn-unused", "src", "temple"}, alloc)
+		opts, err_msg, ok := parse_cli_args({"runa_cli", "--check", "--warn-unused", "src", "runa"}, alloc)
 		testing.expect(t, ok, err_msg)
 		testing.expect(t, opts.check_only)
 		testing.expect(t, opts.warn_unused)
 		testing.expect(t, !opts.watch)
 
-		opts_w, err_w, ok_w := parse_cli_args({"temple_cli", "-watch", "--warn-unused", "src", "-out:src/templates_gen.odin"}, alloc)
+		opts_w, err_w, ok_w := parse_cli_args({"runa_cli", "-watch", "--warn-unused", "src", "-out:src/templates_gen.odin"}, alloc)
 		testing.expect(t, ok_w, err_w)
 		testing.expect(t, opts_w.watch)
 		testing.expect(t, opts_w.warn_unused)
 		testing.expect(t, !opts_w.check_only)
 
 		// `--check` and `--watch` are mutually exclusive
-		_, _, ok_both := parse_cli_args({"temple_cli", "--check", "--watch", "src", "temple"}, alloc)
+		_, _, ok_both := parse_cli_args({"runa_cli", "--check", "--watch", "src", "runa"}, alloc)
 		testing.expect(t, !ok_both)
 	}
 
@@ -459,7 +459,7 @@ test_cli_dx_flags_and_modes :: proc(t: ^testing.T) {
 		check_opts := Cli_Options{
 			project_dir = test_dir,
 			out_file    = out_path,
-			pkg_name    = "temple",
+			pkg_name    = "runa",
 			check_only  = true,
 		}
 		ok_missing := transpile_calls(test_dir, calls, check_opts)
@@ -509,7 +509,7 @@ test_cli_dx_flags_and_modes :: proc(t: ^testing.T) {
 
 		_ = os.write_entire_file(odin_file, transmute([]byte)string("package app\n"))
 		_ = os.write_entire_file(tpl_file, transmute([]byte)string("<div>v1</div>"))
-		_ = os.write_entire_file(gen_file, transmute([]byte)string("/* This file was generated by temple on 2026 - DO NOT EDIT! */\npackage app\n"))
+		_ = os.write_entire_file(gen_file, transmute([]byte)string("/* This file was generated by runa on 2026 - DO NOT EDIT! */\npackage app\n"))
 
 		snap1 := capture_workspace_snapshot(watch_dir, gen_file, alloc)
 		snap2 := capture_workspace_snapshot(watch_dir, gen_file, alloc)
@@ -562,7 +562,7 @@ test_cli_dx_flags_and_modes :: proc(t: ^testing.T) {
 		}
 		_ = os.write_entire_file(vendor_tpl, transmute([]byte)string("ignored"))
 		_ = os.write_entire_file(nm_tpl, transmute([]byte)string("ignored"))
-		_ = os.write_entire_file(build_odin, transmute([]byte)string(`package build; import "temple"; x := temple.compiled("ignored.html", int)`))
+		_ = os.write_entire_file(build_odin, transmute([]byte)string(`package build; import "runa"; x := runa.compiled("ignored.html", int)`))
 
 		discovered := discover_project_template_files(watch_dir, alloc)
 		testing.expect_value(t, len(discovered), 0)
@@ -584,7 +584,7 @@ test_cli_dx_flags_and_modes :: proc(t: ^testing.T) {
 
 		_ = os.write_entire_file(
 			bad_odin,
-			transmute([]byte)string("package bad\nimport \"temple\"\nfoo :: proc(x: string) { _ = temple.compiled(x, int) }\n"),
+			transmute([]byte)string("package bad\nimport \"runa\"\nfoo :: proc(x: string) { _ = runa.compiled(x, int) }\n"),
 		)
 		ok_run := run_cli_once(Cli_Options{
 			project_dir = bad_dir,

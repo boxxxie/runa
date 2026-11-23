@@ -1,4 +1,4 @@
-package temple_cli
+package runa_cli
 
 import "core:fmt"
 import "core:mem"
@@ -82,7 +82,7 @@ Node_Output :: struct {
 	write_kind:  Output_Write_Kind,
 	inner_expr:  string,
 	wrap_call:   string, // Optional wrapper function/cast name, e.g. "len", "int", "f64"
-	default_arg: string, // Optional second argument to `__temple_default(inner_expr, default_arg)`
+	default_arg: string, // Optional second argument to `__runa_default(inner_expr, default_arg)`
 	fmt_str:     string, // Populated when write_kind is .Fmt_Escaped or .Fmt_Raw
 	float_prec:  int,    // Populated when write_kind is .F64_Prec
 }
@@ -2502,7 +2502,7 @@ classify_output_ast :: proc(
 						node.default_arg = fallback_str
 					} else {
 						node.inner_expr = fmt.aprintf(
-							"__temple_default(%s, %s)",
+							"__runa_default(%s, %s)",
 							effective_lhs,
 							fallback_str,
 							allocator = p.allocator,

@@ -43,7 +43,7 @@ test_aot_templates_preserve_markdown_and_zero_leaks :: proc(t: ^testing.T) {
 	records := []Hugi_Record {
 		{
 			commit = "abc123def456",
-			suite_name = "temple",
+			suite_name = "runa",
 			group_name = "compiler_cli",
 			name = `fmt("<&>") | pipe`,
 			full_name = "compiler_cli::watch_snapshot_diff_32",
@@ -59,7 +59,7 @@ test_aot_templates_preserve_markdown_and_zero_leaks :: proc(t: ^testing.T) {
 		},
 		{
 			commit = "abc123def456",
-			suite_name = "temple",
+			suite_name = "runa",
 			group_name = "formatting",
 			name = "fmt_strength_reduced",
 			full_name = "formatting::fmt_strength_reduced",

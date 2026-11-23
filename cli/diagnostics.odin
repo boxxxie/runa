@@ -1,4 +1,4 @@
-package temple_cli
+package runa_cli
 
 import "core:fmt"
 import "core:mem"
@@ -7,7 +7,7 @@ import "core:os"
 import "core:strings"
 
 Trace_Kind :: enum {
-	Call_Site, // temple.compiled(...) in .odin code
+	Call_Site, // runa.compiled(...) in .odin code
 	Embed,     // embed "..." in a template
 	Extends,   // extends "..." in a template
 }
@@ -82,9 +82,9 @@ clear_trace_frames :: proc(ctx: ^Compile_Context) {
 
 warn :: proc(pos: Maybe(tokenizer.Pos), msg: string, args: ..any) {
 	if p, ok := pos.?; ok {
-		fmt.eprintf("%s(%i:%i) \x1b[0;33mTemple Warning:\x1b[0m ", p.file, p.line, p.column)
+		fmt.eprintf("%s(%i:%i) \x1b[0;33mRuna Warning:\x1b[0m ", p.file, p.line, p.column)
 	} else {
-		fmt.eprint("\x1b[0;33mTemple Warning:\x1b[0m ")
+		fmt.eprint("\x1b[0;33mRuna Warning:\x1b[0m ")
 	}
 
 	fmt.eprintf(msg, ..args)
@@ -93,9 +93,9 @@ warn :: proc(pos: Maybe(tokenizer.Pos), msg: string, args: ..any) {
 
 error :: proc(pos: Maybe(tokenizer.Pos), msg: string, args: ..any) -> ! {
 	if p, ok := pos.?; ok {
-		fmt.eprintf("%s(%i:%i) \x1b[0;31mTemple Error:\x1b[0m ", p.file, p.line, p.column)
+		fmt.eprintf("%s(%i:%i) \x1b[0;31mRuna Error:\x1b[0m ", p.file, p.line, p.column)
 	} else {
-		fmt.eprint("\x1b[0;31mTemple Error:\x1b[0m ")
+		fmt.eprint("\x1b[0;31mRuna Error:\x1b[0m ")
 	}
 
 	fmt.eprintf(msg, ..args)
@@ -129,7 +129,7 @@ print_diagnostic :: proc(d: Diagnostic) {
 		case .Extends:
 			fmt.eprintf("  \x1b[1;34m=\x1b[0m extended from %s:%i:%i\n", frame.pos.file, frame.pos.line, frame.pos.column)
 		case .Call_Site:
-			fmt.eprintf("  \x1b[1;34m=\x1b[0m required by `temple.compiled` at %s:%i:%i\n", frame.pos.file, frame.pos.line, frame.pos.column)
+			fmt.eprintf("  \x1b[1;34m=\x1b[0m required by `runa.compiled` at %s:%i:%i\n", frame.pos.file, frame.pos.line, frame.pos.column)
 		}
 	}
 }
